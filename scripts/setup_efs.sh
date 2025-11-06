@@ -9,6 +9,9 @@ install_efs_utils() {
     sudo apt-get update
     sudo apt-get install -y git binutils nfs-common
     
+    # Clean up any previous failed attempts
+    rm -rf /tmp/efs-utils
+
     # Clone and build amazon-efs-utils
     cd /tmp
     git clone https://github.com/aws/efs-utils
