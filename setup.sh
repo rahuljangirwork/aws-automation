@@ -10,182 +10,255 @@ source ./scripts/install_tailscale.sh
 source ./scripts/setup_efs.sh
 source ./scripts/deploy_rustdesk.sh
 source ./scripts/deploy_portainer.sh
+source ./scripts/deploy_npm.sh
+source ./scripts/deploy_nextcloud.sh
+source ./scripts/deploy_pihole.sh
 
-# Main execution
-main() {
-    echo -e "${GREEN}"
-    echo "========================================================="
-    echo "  RustDesk + Tailscale VPN + EFS + Portainer Setup"
-    echo "  AWS Ubuntu - Secure Direct Connections Only"
-    echo "========================================================="
-    echo -e "${NC}"
+# --- Globals ---
+declare -a CHOICES
+
+# --- Interactive Menu ---
+show_menu_and_get_choices() {
+    echo -e "${YELLOW}Please choose which services to install:${NC}"
+    echo "  1) Portainer"
+    echo "  2) RustDesk Server"
+    echo "  3) Nextcloud"
+    echo "  4) Nginx Proxy Manager"
+    echo "  5) Pi-hole + Unbound"
+    echo ""
+    echo "You can select multiple services. For example, enter: 1 2 5"
+    echo ""
     
-    check_root
-    install_dependencies
-    install_tailscale
-    setup_tailscale
+    read -p "Enter your choices (space-separated): " -a CHOICES
     
-    # Get Tailscale IP after setup
-    TAILSCALE_IP=$(get_tailscale_ip)
-    
-    if [ -z "$TAILSCALE_IP" ]; then
-        print_error "Could not detect Tailscale IP. Please ensure Tailscale is connected."
+    if [ ${#CHOICES[@]} -eq 0 ]; then
+        print_error "No selection made. Exiting."
         exit 1
     fi
-    
-    print_status "Using Tailscale IP: $TAILSCALE_IP"
-    
+}
 
-    mount_efs
-    configure_efs_automount
+# --- Installation Dispatcher ---
+install_selected_apps() {
+    print_status "Starting installation of selected services..."
+    
+    # Always create base directories first
     create_directories
-    run_rustdesk_container
-    run_portainer
-    setup_backup_cron
-    wait_for_services
-    verify_installation
-    display_final_info
+
+    for choice in "${CHOICES[@]}"; do
+        case $choice in
+            1)
+                print_status "Installing Portainer..."
+                run_portainer
+                ;;
+            2)
+                print_status "Installing RustDesk Server..."
+                run_rustdesk_container
+                ;;
+            3)
+                print_status "Installing Nextcloud..."
+                run_nextcloud
+                ;;
+            4)
+                print_status "Installing Nginx Proxy Manager..."
+                run_npm
+                ;;
+            5)
+                print_status "Installing Pi-hole + Unbound..."
+                run_pihole
+                ;;
+            *)
+                print_warning "Invalid choice: $choice. Skipping."
+                ;;
+        esac
+    done
 }
 
-setup_backup_cron() {
-    print_status "Setting up automated backups..."
+# --- Verification and Final Info ---
+verify_and_display_info() {
+    print_status "Verifying installations..."
     
-    BACKUP_SCRIPT="/usr/local/bin/rustdesk_backup.sh"
-    
-    sudo tee $BACKUP_SCRIPT > /dev/null <<EOF
-#!/bin/bash
-# RustDesk Backup Script
-DATE=\$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="/var/backups/rustdesk"
-mkdir -p \$BACKUP_DIR
-tar czf \$BACKUP_DIR/rustdesk_backup_\$DATE.tar.gz -C $DATA_DIR .
-# Keep only last 7 days of backups
-find \$BACKUP_DIR -name "rustdesk_backup_*.tar.gz" -mtime +7 -delete
-echo "\$(date): Backup completed - rustdesk_backup_\$DATE.tar.gz"
-EOF
-    
-    sudo chmod +x $BACKUP_SCRIPT
-    
-    # Add to crontab (daily backup at 3 AM)
-    (crontab -l 2>/dev/null | grep -v "$BACKUP_SCRIPT"; echo "0 3 * * * $BACKUP_SCRIPT") | crontab -
-    
-    print_status "Backup cron job configured for daily 3 AM"
-}
+    local rustdesk_installed=false
+    local portainer_installed=false
+    local npm_installed=false
+    local nextcloud_installed=false
+    local pihole_installed=false
 
-wait_for_services() {
-    print_status "Waiting for services to initialize..."
-    sleep 15
-    
-    # Get admin password from logs
-    print_status "Retrieving admin password from container logs..."
-    ADMIN_PASSWORD=$(sudo docker logs $CONTAINER_NAME 2>&1 | grep -i "admin password" | tail -1 | awk -F': ' '{print $2}' | tr -d ' \n\r')
-    
-    if [ -z "$ADMIN_PASSWORD" ]; then
-        # Try alternative patterns
-        ADMIN_PASSWORD=$(sudo docker logs $CONTAINER_NAME 2>&1 | grep -i "password.*admin\|admin.*password" | tail -1 | awk '{print $NF}' | tr -d ' \n\r')
-    fi
-    
-    # Get public key
-    print_status "Retrieving server public key..."
-    sleep 5
-    PUBLIC_KEY=$(sudo docker exec $CONTAINER_NAME cat /data/id_ed25519.pub 2>/dev/null | tr -d ' \n\r')
-    
-    if [ -z "$PUBLIC_KEY" ]; then
-        PUBLIC_KEY=$(sudo docker exec $CONTAINER_NAME find /data /app -name "*.pub" -exec cat {} \; 2>/dev/null | head -1 | tr -d ' \n\r')
-    fi
-}
+    for choice in "${CHOICES[@]}"; do
+        case $choice in
+            1)
+                if sudo docker ps | grep -q $PORTAINER_CONTAINER; then
+                    print_status "✓ Portainer container is running"
+                    portainer_installed=true
+                else
+                    print_error "✗ Portainer container is not running"
+                fi
+                ;;
+            2)
+                if sudo docker ps | grep -q $CONTAINER_NAME; then
+                    print_status "✓ RustDesk container is running"
+                    rustdesk_installed=true
+                else
+                    print_error "✗ RustDesk container is not running"
+                fi
+                
+                if curl -s --max-time 10 http://localhost:21114/_admin/ >/dev/null 2>&1; then
+                    print_status "✓ RustDesk API is responding"
+                else
+                    print_warning "⚠ RustDesk API may not be ready yet"
+                fi
+                ;;
+            3)
+                if sudo docker ps | grep -q $NC_CONTAINER; then
+                    print_status "✓ Nextcloud container is running"
+                    nextcloud_installed=true
+                else
+                    print_error "✗ Nextcloud container is not running"
+                fi
+                ;;
+            4)
+                if sudo docker ps | grep -q $NPM_CONTAINER; then
+                    print_status "✓ Nginx Proxy Manager container is running"
+                    npm_installed=true
+                else
+                    print_error "✗ Nginx Proxy Manager container is not running"
+                fi
+                ;;
+            5)
+                if sudo docker ps | grep -q $PIHOLE_CONTAINER; then
+                    print_status "✓ Pi-hole container is running"
+                    pihole_installed=true
+                else
+                    print_error "✗ Pi-hole container is not running"
+                fi
+                ;;
+        esac
+    done
 
-verify_installation() {
-    print_status "Verifying installation..."
-    
-    # Check if containers are running
-    if sudo docker ps | grep -q $CONTAINER_NAME; then
-        print_status "✓ RustDesk container is running"
-    else
-        print_error "✗ RustDesk container is not running"
-        return 1
-    fi
-    
-    if sudo docker ps | grep -q $PORTAINER_CONTAINER; then
-        print_status "✓ Portainer container is running"
-    else
-        print_error "✗ Portainer container is not running"
-        return 1
-    fi
-    
-    # Check Tailscale status
+    # Common verification
     if tailscale status >/dev/null 2>&1; then
         print_status "✓ Tailscale VPN is connected"
     else
         print_warning "⚠ Tailscale may not be connected"
     fi
-    
-    # Test API endpoint
-    if curl -s --max-time 10 http://localhost:21114/_admin/ >/dev/null 2>&1; then
-        print_status "✓ RustDesk API is responding"
-    else
-        print_warning "⚠ RustDesk API may not be ready yet (this is normal)"
-    fi
-}
 
-display_final_info() {
+    # --- Display Final Info ---
     echo ""
     echo "=================================================="
-    echo -e "${GREEN}  RustDesk + Tailscale + EFS Installation Complete!${NC}"
+    echo -e "${GREEN}      Service Installation Complete!${NC}"
     echo "=================================================="
     echo ""
     echo -e "${YELLOW}🌐 Access URLs (via Tailscale ONLY):${NC}"
-    echo "   RustDesk Admin Panel: http://$TAILSCALE_IP:21114/_admin/"
-    echo "   RustDesk Web Client:  http://$TAILSCALE_IP:21114/"
-    echo "   Portainer:           https://$TAILSCALE_IP:9443/"
-    echo "   API Documentation:   http://$TAILSCALE_IP:21114/swagger/index.html"
-    echo ""
-    echo -e "${YELLOW}🔐 Credentials:${NC}"
-    echo "   Admin Username: admin"
-    if [ ! -z "$ADMIN_PASSWORD" ]; then
-        echo "   Admin Password: $ADMIN_PASSWORD"
-    else
-        echo "   Admin Password: Check logs with: sudo docker logs $CONTAINER_NAME | grep -i password"
+    if [ "$portainer_installed" = true ]; then
+        echo "   Portainer:           https://$TAILSCALE_IP:9443/"
+    fi
+    if [ "$rustdesk_installed" = true ]; then
+        echo "   RustDesk Admin Panel: http://$TAILSCALE_IP:21114/_admin/"
+        echo "   RustDesk Web Client:  http://$TAILSCALE_IP:21114/"
+    fi
+    if [ "$npm_installed" = true ]; then
+        echo "   Nginx Proxy Manager: http://$TAILSCALE_IP:81/"
+    fi
+    if [ "$nextcloud_installed" = true ]; then
+        echo "   Nextcloud:           http://$TAILSCALE_IP:8080/"
+    fi
+    if [ "$pihole_installed" = true ]; then
+        echo "   Pi-hole Admin:       http://$TAILSCALE_IP:8081/admin/"
     fi
     echo ""
-    echo -e "${YELLOW}🔧 RustDesk Client Configuration:${NC}"
-    echo "   ID Server:    $TAILSCALE_IP:21116"
-    echo "   Relay Server: DISABLED (Direct connection only)"
-    echo "   API Server:   http://$TAILSCALE_IP:21114"
-    if [ ! -z "$PUBLIC_KEY" ]; then
-        echo "   Public Key:   $PUBLIC_KEY"
-    else
-        echo "   Public Key:   Run: sudo docker exec $CONTAINER_NAME cat /data/id_ed25519.pub"
+
+    if [ "$rustdesk_installed" = true ]; then
+        # Retrieve RustDesk info
+        ADMIN_PASSWORD=$(sudo docker logs $CONTAINER_NAME 2>&1 | grep -i "admin password" | tail -1 | awk -F': ' '{print $2}' | tr -d '\n\r')
+        PUBLIC_KEY=$(sudo docker exec $CONTAINER_NAME cat /data/id_ed25519.pub 2>/dev/null | tr -d '\n\r')
+
+        echo -e "${YELLOW}🔐 RustDesk Credentials & Config:${NC}"
+        echo "   Admin Username: admin"
+        echo "   Admin Password: ${ADMIN_PASSWORD:-Not found, check logs}"
+        echo "   ID Server:    $TAILSCALE_IP:21116"
+        echo "   Public Key:   ${PUBLIC_KEY:-Not found, check logs}"
+        echo ""
     fi
-    echo ""
-    echo -e "${YELLOW}🔐 Tailscale Network:${NC}"
-    echo "   Your Tailscale IP: $TAILSCALE_IP"
-    echo "   Network Status:    $(tailscale status --json 2>/dev/null | jq -r '.Self.Online' || echo 'Connected')"
-    echo ""
-    echo -e "${YELLOW}📁 EFS Storage:${NC}"
-    echo "   EFS ID:        $EFS_ID"
-    echo "   Mount Point:   $DATA_DIR"
-    echo "   Auto-mount:    Enabled in /etc/fstab"
-    echo ""
+    
+    if [ "$npm_installed" = true ]; then
+        echo -e "${YELLOW}🔐 Nginx Proxy Manager Default Credentials:${NC}"
+        echo "   Email:    admin@example.com"
+        echo "   Password: changeme"
+        echo ""
+    fi
+
+    if [ "$pihole_installed" = true ]; then
+        echo -e "${YELLOW}🔐 Pi-hole Default Credentials:${NC}"
+        echo "   Password: ${PIHOLE_PASSWORD}"
+        echo "   (Set during installation, check logs if not displayed here)"
+        echo ""
+    fi
+
     echo -e "${YELLOW}💡 Important Notes:${NC}"
-    echo "   ⚠️  RELAY IS DISABLED - Connections work ONLY via Tailscale VPN"
-    echo "   1. Install Tailscale on all client devices"
-    echo "   2. Use Tailscale IP ($TAILSCALE_IP) for RustDesk ID Server"
-    echo "   3. Connect using direct IP or ID (no relay fallback)"
-    echo "   4. Change admin password: sudo docker exec rustdesk-server /app/apimain reset-admin-pwd YOUR_PASSWORD"
-    echo "   5. Monitor logs: sudo docker logs -f $CONTAINER_NAME"
+    echo "   - All services are accessible ONLY through the Tailscale VPN."
+    echo "   - For RustDesk, ensure Relay is disabled in the client."
+    echo "   - To use Pi-hole as your DNS server, set your devices' DNS to $TAILSCALE_IP"
     echo ""
-    echo -e "${YELLOW}📱 Client Setup Instructions:${NC}"
-    echo "   1. Install Tailscale on client device: https://tailscale.com/download"
-    echo "   2. Connect to your Tailscale network"
-    echo "   3. Install RustDesk client"
-    echo "   4. Go to Settings → Network"
-    echo "   5. Set ID Server: $TAILSCALE_IP:21116"
-    echo "   6. Leave Relay Server EMPTY or set to 127.0.0.1"
-    echo "   7. Apply settings and restart RustDesk"
+    echo -e "${GREEN}✅ Setup finished!${NC}"
     echo ""
-    echo -e "${GREEN}✅ Installation completed successfully!${NC}"
-    echo ""
+}
+
+
+# --- Main Execution ---
+main() {
+    echo -e "${GREEN}"
+    echo "========================================================="
+    echo "    Interactive AWS Self-Hosted Service Installer"
+    echo "========================================================="
+    echo -e "${NC}"
+    
+    # --- Core Setup ---
+    check_root
+    install_dependencies
+    install_tailscale
+    setup_tailscale
+    
+    TAILSCALE_IP=$(get_tailscale_ip)
+    if [ -z "$TAILSCALE_IP" ]; then
+        print_error "Could not detect Tailscale IP. Exiting."
+        exit 1
+    fi
+    print_status "Using Tailscale IP: $TAILSCALE_IP"
+    
+    mount_efs
+    configure_efs_automount
+    
+    # --- Interactive Installation ---
+    show_menu_and_get_choices
+    install_selected_apps
+    
+    # --- Finalization ---
+    # The backup cron job is specific to RustDesk, let's make it conditional
+    if [[ " ${CHOICES[*]} " =~ " 2 " ]]; then
+        setup_backup_cron
+    fi
+    
+    print_status "Waiting for services to initialize..."
+    sleep 15
+    
+    verify_and_display_info
+}
+
+setup_backup_cron() {
+    # This function is now conditional, only for RustDesk
+    print_status "Setting up automated backups for RustDesk..."
+    # (Backup script content remains the same as original)
+    BACKUP_SCRIPT="/usr/local/bin/rustdesk_backup.sh"
+    sudo tee $BACKUP_SCRIPT > /dev/null <<EOF
+#!/bin/bash
+DATE=\$(date +%Y%m%d_%H%M%S)
+BACKUP_DIR="/var/backups/rustdesk"
+mkdir -p \$BACKUP_DIR
+tar czf \$BACKUP_DIR/rustdesk_backup_\$DATE.tar.gz -C $DATA_DIR .
+find \$BACKUP_DIR -name "rustdesk_backup_*.tar.gz" -mtime +7 -delete
+EOF
+    sudo chmod +x $BACKUP_SCRIPT
+    (crontab -l 2>/dev/null | grep -v "$BACKUP_SCRIPT"; echo "0 3 * * * $BACKUP_SCRIPT") | crontab -
+    print_status "RustDesk backup cron job configured."
 }
 
 # Run main function
