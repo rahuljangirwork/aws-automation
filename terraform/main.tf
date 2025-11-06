@@ -132,6 +132,18 @@ resource "aws_instance" "app_server" {
               
               # Change ownership to the ubuntu user
               chown -R ubuntu:ubuntu /home/ubuntu/aws-automation
+
+              # Navigate to the scripts directory
+              cd /home/ubuntu/aws-automation/scripts
+
+              # Update the EFS ID in the config.sh file
+              sed -i "s/EFS_ID='.*'/EFS_ID='${aws_efs_file_system.efs_storage.id}'/" config.sh
+
+              # Make the setup script executable
+              chmod +x setup_efs.sh
+
+              # Run the setup script as the ubuntu user
+              sudo -u ubuntu ./setup_efs.sh
               EOF
 
   tags = {
