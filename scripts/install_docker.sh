@@ -16,6 +16,16 @@ install_dependencies() {
     # Install prerequisites
     sudo DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https ca-certificates curl software-properties-common unzip jq wget
 
+    # Install Rust and Cargo
+    if ! command -v cargo &> /dev/null; then
+        print_status "Installing Rust and Cargo..."
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+        source "$HOME/.cargo/env"
+        print_status "Rust and Cargo installed successfully"
+    else
+        print_status "Rust and Cargo already installed"
+    fi
+
     # Remove existing Docker GPG key to prevent conflicts
     sudo rm -f /usr/share/keyrings/docker-archive-keyring.gpg
 
