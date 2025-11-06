@@ -7,7 +7,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/config.sh"
 # Source the print_status function
 source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
 
-() {
+install_dependencies() {
     print_status "Installing prerequisites including unzip and Docker..."
 
     # Update package list
@@ -49,5 +49,3 @@ source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
         print_status "AWS CLI already installed"
     fi
 }
-
-install_dependencies
