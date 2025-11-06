@@ -132,11 +132,6 @@ resource "aws_instance" "app_server" {
               
               # Change ownership to the ubuntu user
               chown -R ubuntu:ubuntu /home/ubuntu/aws-automation
-              
-              # Run the setup script as the ubuntu user
-              cd /home/ubuntu/aws-automation
-              chmod +x setup.sh
-              sudo -u ubuntu ./setup.sh
               EOF
 
   tags = {
