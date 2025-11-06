@@ -1,7 +1,7 @@
 #!/bin/bash
 
-source ./scripts/config.sh
-source ./scripts/utils.sh
+source "$(dirname "${BASH_SOURCE[0]}")/config.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
 
 install_tailscale() {
     print_status "Installing Tailscale VPN..."
