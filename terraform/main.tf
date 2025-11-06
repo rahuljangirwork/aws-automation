@@ -64,6 +64,51 @@ resource "aws_security_group" "ec2_sg" {
   }
 }
 
+resource "aws_security_group" "efs_sg" {
+  name        = "efs-sg"
+  description = "Allow NFS traffic from EC2"
+  vpc_id      = data.aws_vpc.default.id
+
+  ingress {
+    from_port       = 2049
+    to_port         = 2049
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ec2_sg.id]
+    description     = "Allow NFS from EC2"
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "EFS-SG"
+  }
+}
+
+resource "aws_efs_file_system" "efs" {
+  creation_token = "efs-for-ec2"
+  tags = {
+    Name = "EFS-for-EC2"
+  }
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "aws_efs_mount_target" "efs_mount_target" {
+  for_each = toset(data.aws_subnets.default.ids)
+
+  file_system_id  = aws_efs_file_system.efs.id
+  subnet_id       = each.value
+  security_groups = [aws_security_group.efs_sg.id]
+}
+
+
+
 
 
 
@@ -103,7 +148,7 @@ resource "aws_instance" "app_server" {
               SETUP_SCRIPT="/home/ubuntu/aws-automation/setup.sh"
 
               # Update the EFS ID in the config.sh file with the correct one from Terraform
-              sed -i "s/EFS_ID='.*'/EFS_ID='${var.efs_id}'/" "$CONFIG_FILE"
+              sed -i "s/EFS_ID='.*'/EFS_ID='${aws_efs_file_system.efs.id}'/" "$CONFIG_FILE"
 
               # Make the main setup script executable
               chmod +x "$SETUP_SCRIPT"

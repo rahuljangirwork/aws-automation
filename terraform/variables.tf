@@ -21,8 +21,3 @@ variable "github_repo_url" {
   type        = string
   default     = "https://github.com/rahuljangirwork/aws-automation.git"
 }
-
-variable "efs_id" {
-  description = "The ID of the manually-created EFS file system (e.g., fs-12345678)."
-  type        = string
-}
