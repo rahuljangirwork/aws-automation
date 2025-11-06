@@ -8,7 +8,7 @@ run_npm() {
     sudo mkdir -p "$NPM_DATA_DIR/letsencrypt"
 
     # Create Docker Compose file
-    tee "$NPM_COMPOSE_FILE" > /dev/null <<EOF
+    sudo tee "$NPM_COMPOSE_FILE" > /dev/null <<EOF
 version: '3.8'
 services:
   app:

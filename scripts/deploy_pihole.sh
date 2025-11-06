@@ -8,7 +8,7 @@ run_pihole() {
     sudo mkdir -p "$PIHOLE_DATA_DIR/unbound"
 
     # Create Docker Compose file
-    tee "$PIHOLE_COMPOSE_FILE" > /dev/null <<EOF
+    sudo tee "$PIHOLE_COMPOSE_FILE" > /dev/null <<EOF
 version: "3.8"
 
 services:

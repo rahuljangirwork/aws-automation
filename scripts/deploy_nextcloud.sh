@@ -8,7 +8,7 @@ run_nextcloud() {
     sudo mkdir -p "$NC_DATA_DIR/db"
 
     # Create Docker Compose file
-    tee "$NC_COMPOSE_FILE" > /dev/null <<EOF
+    sudo tee "$NC_COMPOSE_FILE" > /dev/null <<EOF
 version: '3.8'
 
 services:
