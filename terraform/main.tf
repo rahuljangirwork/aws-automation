@@ -133,17 +133,19 @@ resource "aws_instance" "app_server" {
               # Change ownership to the ubuntu user
               chown -R ubuntu:ubuntu /home/ubuntu/aws-automation
 
-              # Navigate to the scripts directory
-              cd /home/ubuntu/aws-automation/scripts
+              # Define absolute paths
+              CONFIG_FILE="/home/ubuntu/aws-automation/scripts/config.sh"
+              SETUP_SCRIPT="/home/ubuntu/aws-automation/setup.sh"
 
-              # Update the EFS ID in the config.sh file
-              sed -i "s/EFS_ID='.*'/EFS_ID='${aws_efs_file_system.efs_storage.id}'/" config.sh
+              # Update the EFS ID in the config.sh file with the correct one from Terraform
+              sed -i "s/EFS_ID='.*'/EFS_ID='${aws_efs_file_system.efs_storage.id}'/" "$CONFIG_FILE"
 
-              # Make the setup script executable
-              chmod +x setup_efs.sh
+              # Make the main setup script executable
+              chmod +x "$SETUP_SCRIPT"
 
-              # Run the setup script as the ubuntu user
-              sudo -u ubuntu ./setup_efs.sh
+              # Run the main setup script as the ubuntu user
+              # This will run until it prompts for Tailscale authentication
+              sudo -u ubuntu "$SETUP_SCRIPT"
               EOF
 
   tags = {

@@ -2,7 +2,7 @@
 
 # AWS Configuration
 AWS_REGION='eu-north-1'
-EFS_ID='fs-0a3724f447126adb9'
+EFS_ID='fs-03bf8df05a4cfb96c'
 
 # RustDesk Configuration
 CONTAINER_NAME='rustdesk-server'
