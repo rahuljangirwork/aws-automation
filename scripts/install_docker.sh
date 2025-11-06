@@ -14,7 +14,7 @@ install_dependencies() {
     sudo apt-get update
 
     # Install prerequisites
-    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https ca-certificates curl software-properties-common unzip jq wget build-essential
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https ca-certificates curl software-properties-common unzip jq wget build-essential golang-go cmake
 
     # Install Rust and Cargo
     if ! command -v cargo &> /dev/null; then
