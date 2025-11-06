@@ -7,15 +7,13 @@ variable "aws_region" {
 variable "ssh_key_name" {
   description = "The name of your AWS SSH key pair for the selected region."
   type        = string
-  # IMPORTANT: Replace this with your actual key pair name!
-  # For example: default = "my-aws-key"
-  default     = "YOUR_SSH_KEY_NAME_HERE"
+  default     = "my-stockholm-key"
 }
 
 variable "instance_type" {
   description = "The EC2 instance type."
   type        = string
-  default     = "t3.small"
+  default     = "t3.micro"
 }
 
 variable "github_repo_url" {
