@@ -7,9 +7,25 @@ mount_efs() {
     print_status "Mounting EFS file system using NFS..."
     
     # Create mount point
-    sudo mkdir -p $DATA_DIR
-    
     EFS_DNS="${EFS_ID}.efs.${AWS_REGION}.amazonaws.com"
+
+    # Wait for DNS to resolve to prevent race condition
+    print_status "Waiting for EFS DNS to resolve..."
+    RETRY_COUNT=0
+    MAX_RETRIES=10
+    RETRY_DELAY=15
+    while ! getent hosts $EFS_DNS > /dev/null; do
+        RETRY_COUNT=$((RETRY_COUNT + 1))
+        if [ $RETRY_COUNT -gt $MAX_RETRIES ]; then
+            print_error "EFS DNS name ($EFS_DNS) could not be resolved after several retries."
+            exit 1
+        fi
+        print_status "DNS not ready, retrying in ${RETRY_DELAY}s... (${RETRY_COUNT}/${MAX_RETRIES})"
+        sleep $RETRY_DELAY
+    done
+    print_status "EFS DNS resolved successfully."
+
+
     
     # Mount EFS using NFS
     # Check if already mounted to prevent errors on re-run
