@@ -94,6 +94,10 @@ resource "aws_efs_file_system" "efs_storage" {
   tags = {
     Name = "RustDesk-EFS-Storage"
   }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_efs_mount_target" "efs_mount" {
