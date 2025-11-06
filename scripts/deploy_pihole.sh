@@ -51,7 +51,7 @@ networks:
 EOF
 
     print_status "Starting Pi-hole and Unbound containers..."
-    (cd "$(dirname "$PIHOLE_COMPOSE_FILE")" && sudo docker-compose -f "$PIHOLE_COMPOSE_FILE" up -d)
+    (cd "$(dirname "$PIHOLE_COMPOSE_FILE")" && sudo docker compose -f "$PIHOLE_COMPOSE_FILE" up -d)
 
     print_status "Pi-hole setup complete."
     echo "Pi-hole admin panel will be available at http://$TAILSCALE_IP:8081/admin/"

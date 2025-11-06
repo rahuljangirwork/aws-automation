@@ -27,7 +27,7 @@ services:
 EOF
 
     print_status "Starting Nginx Proxy Manager container..."
-    (cd "$(dirname "$NPM_COMPOSE_FILE")" && sudo docker-compose -f "$NPM_COMPOSE_FILE" up -d)
+    (cd "$(dirname "$NPM_COMPOSE_FILE")" && sudo docker compose -f "$NPM_COMPOSE_FILE" up -d)
 
     print_status "Nginx Proxy Manager setup complete."
     echo "You can access the admin panel at http://$TAILSCALE_IP:81"

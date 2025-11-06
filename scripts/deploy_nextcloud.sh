@@ -55,7 +55,7 @@ networks:
 EOF
 
     print_status "Starting Nextcloud and MariaDB containers..."
-    (cd "$(dirname "$NC_COMPOSE_FILE")" && sudo docker-compose -f "$NC_COMPOSE_FILE" up -d)
+    (cd "$(dirname "$NC_COMPOSE_FILE")" && sudo docker compose -f "$NC_COMPOSE_FILE" up -d)
 
     print_status "Nextcloud setup complete."
     echo "Nextcloud will be available at http://$TAILSCALE_IP:8080 after a few minutes of initialization."
