@@ -12,7 +12,6 @@ source ./scripts/deploy_rustdesk.sh
 source ./scripts/deploy_portainer.sh
 source ./scripts/deploy_npm.sh
 source ./scripts/deploy_nextcloud.sh
-source ./scripts/deploy_pihole.sh
 
 # --- Globals ---
 declare -a CHOICES
@@ -24,9 +23,8 @@ show_menu_and_get_choices() {
     echo "  2) RustDesk Server"
     echo "  3) Nextcloud"
     echo "  4) Nginx Proxy Manager"
-    echo "  5) Pi-hole + Unbound"
     echo ""
-    echo "You can select multiple services. For example, enter: 1 2 5"
+    echo "You can select multiple services. For example, enter: 1 2"
     echo ""
     
     read -p "Enter your choices (space-separated): " -a CHOICES
@@ -62,10 +60,6 @@ install_selected_apps() {
                 print_status "Installing Nginx Proxy Manager..."
                 run_npm
                 ;;
-            5)
-                print_status "Installing Pi-hole + Unbound..."
-                run_pihole
-                ;;
             *)
                 print_warning "Invalid choice: $choice. Skipping."
                 ;;
@@ -81,7 +75,6 @@ verify_and_display_info() {
     local portainer_installed=false
     local npm_installed=false
     local nextcloud_installed=false
-    local pihole_installed=false
 
     for choice in "${CHOICES[@]}"; do
         case $choice in
@@ -123,14 +116,6 @@ verify_and_display_info() {
                     print_error "✗ Nginx Proxy Manager container is not running"
                 fi
                 ;;
-            5)
-                if sudo docker ps | grep -q $PIHOLE_CONTAINER; then
-                    print_status "✓ Pi-hole container is running"
-                    pihole_installed=true
-                else
-                    print_error "✗ Pi-hole container is not running"
-                fi
-                ;;
         esac
     done
 
@@ -161,9 +146,6 @@ verify_and_display_info() {
     if [ "$nextcloud_installed" = true ]; then
         echo "   Nextcloud:           http://$TAILSCALE_IP:8080/"
     fi
-    if [ "$pihole_installed" = true ]; then
-        echo "   Pi-hole Admin:       http://$TAILSCALE_IP:8081/admin/"
-    fi
     echo ""
 
     if [ "$rustdesk_installed" = true ]; then
@@ -186,17 +168,9 @@ verify_and_display_info() {
         echo ""
     fi
 
-    if [ "$pihole_installed" = true ]; then
-        echo -e "${YELLOW}🔐 Pi-hole Default Credentials:${NC}"
-        echo "   Password: ${PIHOLE_PASSWORD}"
-        echo "   (Set during installation, check logs if not displayed here)"
-        echo ""
-    fi
-
     echo -e "${YELLOW}💡 Important Notes:${NC}"
     echo "   - All services are accessible ONLY through the Tailscale VPN."
     echo "   - For RustDesk, ensure Relay is disabled in the client."
-    echo "   - To use Pi-hole as your DNS server, set your devices' DNS to $TAILSCALE_IP"
     echo ""
     echo -e "${GREEN}✅ Setup finished!${NC}"
     echo ""
