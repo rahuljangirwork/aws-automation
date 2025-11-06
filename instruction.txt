@@ -1,0 +1,858 @@
+Complete Setup Instructions
+Prerequisites
+AWS EFS file system created (you have: fs-0a3724f447126adb9)
+
+EC2 Ubuntu instance in the same VPC
+
+Security group allowing NFS traffic (port 2049) between EC2 and EFS​
+
+Step 1: Install EFS Utilities
+Add this section to your script after the install_dependencies() function:
+
+bash
+# Install EFS utilities
+install_efs_utils() {
+    print_status "Installing Amazon EFS utilities..."
+    
+    sudo apt-get update
+    sudo apt-get install -y git binutils nfs-common
+    
+    # Clone and build amazon-efs-utils
+    cd /tmp
+    git clone https://github.com/aws/efs-utils
+    cd efs-utils
+    ./build-deb.sh
+    sudo apt-get -y install ./build/amazon-efs-utils*deb
+    
+    # Clean up
+    cd ~
+    rm -rf /tmp/efs-utils
+    
+    print_status "EFS utilities installed successfully"
+}
+Step 2: Mount EFS Storage
+Add this function to mount your EFS:
+
+bash
+# Mount EFS file system
+mount_efs() {
+    print_status "Mounting EFS file system..."
+    
+    # Your EFS details from screenshot
+    EFS_ID='fs-0a3724f447126adb9'
+    EFS_REGION='eu-north-1'
+    MOUNT_POINT='/data/rustdesk'
+    
+    # Create mount point
+    sudo mkdir -p $MOUNT_POINT
+    
+    # Mount EFS using mount helper
+    sudo mount -t efs -o tls $EFS_ID:/ $MOUNT_POINT
+    
+    if [ $? -eq 0 ]; then
+        print_status "EFS mounted successfully at $MOUNT_POINT"
+    else
+        print_error "Failed to mount EFS"
+        exit 1
+    fi
+    
+    # Verify mount
+    if mountpoint -q $MOUNT_POINT; then
+        print_status "✓ EFS mount verified"
+    else
+        print_error "✗ EFS not mounted properly"
+        exit 1
+    fi
+    
+    # Set permissions
+    sudo chown -R $USER:$USER $MOUNT_POINT
+}
+Step 3: Enable Auto-Mount on Reboot
+Add this function to configure automatic mounting:
+
+bash
+# Configure automatic EFS mounting
+configure_efs_automount() {
+    print_status "Configuring EFS auto-mount..."
+    
+    EFS_ID='fs-0a3724f447126adb9'
+    MOUNT_POINT='/data/rustdesk'
+    
+    # Add to /etc/fstab for automatic mounting
+    FSTAB_ENTRY="$EFS_ID:/ $MOUNT_POINT efs _netdev,tls,iam 0 0"
+    
+    # Check if entry already exists
+    if ! grep -q "$EFS_ID" /etc/fstab; then
+        echo "$FSTAB_ENTRY" | sudo tee -a /etc/fstab
+        print_status "EFS auto-mount configured in /etc/fstab"
+    else
+        print_status "EFS already configured in /etc/fstab"
+    fi
+}
+Step 4: Update Main Function
+Replace your main() function with this updated version:
+
+bash
+# Main execution
+main() {
+    echo -e "${GREEN}"
+    echo "=================================================="
+    echo "    RustDesk + Portainer + EFS Installation"
+    echo "    for AWS Ubuntu with lejianwen/rustdesk-api"
+    echo "=================================================="
+    echo -e "${NC}"
+    
+    check_root
+    install_dependencies
+    install_efs_utils           # NEW: Install EFS tools
+    mount_efs                   # NEW: Mount EFS storage
+    configure_efs_automount     # NEW: Configure auto-mount
+    create_directories          # This now works on EFS-mounted storage
+    run_rustdesk_container
+    run_portainer
+    setup_backup_cron
+    wait_for_services
+    verify_installation
+    display_final_info
+}
+Step 5: Update Security Group
+Ensure your EC2 security group has these rules:​
+
+Inbound Rules:
+
+Type: NFS, Protocol: TCP, Port: 2049, Source: EFS security group
+
+Type: HTTP, Protocol: TCP, Port: 21114-21119
+
+Type: HTTPS, Protocol: TCP, Port: 9443
+
+EFS Security Group Inbound:
+
+Type: NFS, Protocol: TCP, Port: 2049, Source: EC2 security group
+
+Step 6: Complete Modified Script
+Save this complete script as setup_rustdesk_efs.sh:
+
+bash
+#!/bin/bash
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+# Variables
+AWS_REGION='eu-north-1'
+EFS_ID='fs-0a3724f447126adb9'
+CONTAINER_NAME='rustdesk-server'
+IMAGE='lejianwen/rustdesk-api:full-s6'
+DATA_DIR='/data/rustdesk'
+PORTAINER_CONTAINER='portainer'
+PORTAINER_DATA_VOLUME='portainer_data'
+
+# [Keep all your existing functions: get_server_ip, print_status, etc.]
+
+# NEW: Install EFS utilities
+install_efs_utils() {
+    print_status "Installing Amazon EFS utilities..."
+    sudo apt-get install -y git binutils nfs-common
+    cd /tmp
+    git clone https://github.com/aws/efs-utils
+    cd efs-utils
+    ./build-deb.sh
+    sudo apt-get -y install ./build/amazon-efs-utils*deb
+    cd ~
+    rm -rf /tmp/efs-utils
+    print_status "EFS utilities installed successfully"
+}
+
+# NEW: Mount EFS
+mount_efs() {
+    print_status "Mounting EFS file system..."
+    sudo mkdir -p $DATA_DIR
+    sudo mount -t efs -o tls $EFS_ID:/ $DATA_DIR
+    
+    if mountpoint -q $DATA_DIR; then
+        print_status "✓ EFS mounted at $DATA_DIR"
+    else
+        print_error "✗ Failed to mount EFS"
+        exit 1
+    fi
+    
+    sudo chown -R $USER:$USER $DATA_DIR
+}
+
+# NEW: Auto-mount configuration
+configure_efs_automount() {
+    print_status "Configuring EFS auto-mount..."
+    FSTAB_ENTRY="$EFS_ID:/ $DATA_DIR efs _netdev,tls,iam 0 0"
+    
+    if ! grep -q "$EFS_ID" /etc/fstab; then
+        echo "$FSTAB_ENTRY" | sudo tee -a /etc/fstab
+        print_status "EFS auto-mount configured"
+    fi
+}
+
+# MODIFIED: Update main function
+main() {
+    echo -e "${GREEN}"
+    echo "=================================================="
+    echo "    RustDesk + Portainer + EFS Installation"
+    echo "=================================================="
+    echo -e "${NC}"
+    
+    check_root
+    install_dependencies
+    install_efs_utils
+    mount_efs
+    configure_efs_automount
+    create_directories
+    run_rustdesk_container
+    run_portainer
+    setup_backup_cron
+    wait_for_services
+    verify_installation
+    display_final_info
+    
+    echo ""
+    echo -e "${YELLOW}📁 EFS Storage:${NC}"
+    echo "   EFS ID:      $EFS_ID"
+    echo "   Mount Point: $DATA_DIR"
+    echo "   Auto-mount:  Enabled in /etc/fstab"
+    echo ""
+}
+
+main "$@"
+Step 7: Run the Script
+Execute these commands on your EC2 instance:
+
+bash
+# Upload the script
+chmod +x setup_rustdesk_efs.sh
+
+# Run the script
+./setup_rustdesk_efs.sh
+Step 8: Verify EFS Mount
+After installation, verify everything is working:
+
+bash
+# Check if EFS is mounted
+df -h | grep efs
+
+# Verify mount point
+mountpoint /data/rustdesk
+
+# Check EFS contents
+ls -la /data/rustdesk
+
+# Test write access
+touch /data/rustdesk/test_file.txt
+Key Benefits of EFS Integration
+Persistent Storage: Data survives EC2 instance termination​
+
+Shared Access: Multiple EC2 instances can access the same data
+
+Automatic Backups: EFS handles backups automatically
+
+Scalability: Storage grows automatically with your data
+
+High Availability: Data replicated across availability zones​
+
+
+Complete Enhanced Setup Script with Tailscale
+bash
+#!/bin/bash
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Variables
+AWS_REGION='eu-north-1'
+EFS_ID='fs-0a3724f447126adb9'
+CONTAINER_NAME='rustdesk-server'
+IMAGE='lejianwen/rustdesk-api:full-s6'
+DATA_DIR='/data/rustdesk'
+PORTAINER_CONTAINER='portainer'
+PORTAINER_DATA_VOLUME='portainer_data'
+TAILSCALE_IP=''
+
+# Function to get Tailscale IP
+get_tailscale_ip() {
+    local ip=''
+    
+    # Wait for Tailscale to be fully connected
+    sleep 5
+    
+    # Get Tailscale IP
+    ip=$(tailscale ip -4 2>/dev/null | head -1 | tr -d ' \n\r')
+    
+    if [ -z "$ip" ]; then
+        # Alternative method
+        ip=$(ip addr show tailscale0 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -1)
+    fi
+    
+    echo "$ip"
+}
+
+# Function to print status
+print_status() {
+    echo -e "${GREEN}[INFO] $1${NC}"
+}
+
+print_error() {
+    echo -e "${RED}[ERROR] $1${NC}"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[WARNING] $1${NC}"
+}
+
+# Check if running as root
+check_root() {
+    if [[ $EUID -eq 0 ]]; then
+        print_error "This script should not be run as root for security reasons."
+        print_error "Please run as ubuntu user with sudo privileges."
+        exit 1
+    fi
+}
+
+# Install Tailscale
+install_tailscale() {
+    print_status "Installing Tailscale VPN..."
+    
+    # Add Tailscale repository
+    curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/$(lsb_release -cs).noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
+    curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/$(lsb_release -cs).tailscale-keyring.list | sudo tee /etc/apt/sources.list.d/tailscale.list
+    
+    # Install Tailscale
+    sudo apt-get update
+    sudo apt-get install -y tailscale
+    
+    print_status "Tailscale installed successfully"
+}
+
+# Configure and start Tailscale
+setup_tailscale() {
+    print_status "Setting up Tailscale connection..."
+    
+    # Check if already connected
+    if tailscale status >/dev/null 2>&1; then
+        print_status "Tailscale is already running"
+        TAILSCALE_IP=$(get_tailscale_ip)
+        
+        if [ ! -z "$TAILSCALE_IP" ]; then
+            print_status "Current Tailscale IP: $TAILSCALE_IP"
+        fi
+    else
+        print_warning "Tailscale needs to be authenticated"
+        echo ""
+        echo "=================================================="
+        echo -e "${YELLOW}TAILSCALE AUTHENTICATION REQUIRED${NC}"
+        echo "=================================================="
+        echo ""
+        echo "Run this command to authenticate Tailscale:"
+        echo -e "${GREEN}sudo tailscale up${NC}"
+        echo ""
+        echo "This will provide a URL to authenticate in your browser."
+        echo "After authentication, run this script again."
+        echo ""
+        exit 0
+    fi
+    
+    # Enable IP forwarding for Tailscale (optional but recommended)
+    echo 'net.ipv4.ip_forward = 1' | sudo tee -a /etc/sysctl.conf
+    echo 'net.ipv6.conf.all.forwarding = 1' | sudo tee -a /etc/sysctl.conf
+    sudo sysctl -p
+}
+
+# Install dependencies
+install_dependencies() {
+    print_status "Installing prerequisites including unzip and Docker..."
+
+    # Update package list
+    sudo apt-get update
+
+    # Install prerequisites
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https ca-certificates curl software-properties-common unzip jq wget
+
+    # Remove existing Docker GPG key to prevent conflicts
+    sudo rm -f /usr/share/keyrings/docker-archive-keyring.gpg
+
+    # Install Docker CE (official method)
+    print_status "Setting up Docker repository..."
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    # Update and install Docker
+    sudo apt-get update
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+    # Start and enable Docker
+    sudo systemctl enable --now docker
+
+    # Add user to docker group
+    sudo usermod -aG docker $USER
+
+    print_status "Docker installed successfully"
+
+    # Install AWS CLI v2 if not present
+    if ! command -v aws &> /dev/null; then
+        print_status "Installing AWS CLI v2..."
+        curl -s https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o awscliv2.zip
+        unzip -q awscliv2.zip
+        sudo ./aws/install
+        rm -rf awscliv2.zip aws
+        print_status "AWS CLI installed successfully"
+    else
+        print_status "AWS CLI already installed"
+    fi
+}
+
+# Install EFS utilities
+install_efs_utils() {
+    print_status "Installing Amazon EFS utilities..."
+    
+    sudo apt-get install -y git binutils nfs-common
+    
+    # Clone and build amazon-efs-utils
+    cd /tmp
+    git clone https://github.com/aws/efs-utils
+    cd efs-utils
+    ./build-deb.sh
+    sudo apt-get -y install ./build/amazon-efs-utils*deb
+    
+    # Clean up
+    cd ~
+    rm -rf /tmp/efs-utils
+    
+    print_status "EFS utilities installed successfully"
+}
+
+# Mount EFS file system
+mount_efs() {
+    print_status "Mounting EFS file system..."
+    
+    # Create mount point
+    sudo mkdir -p $DATA_DIR
+    
+    # Mount EFS using mount helper
+    sudo mount -t efs -o tls $EFS_ID:/ $DATA_DIR
+    
+    if [ $? -eq 0 ]; then
+        print_status "EFS mounted successfully at $DATA_DIR"
+    else
+        print_error "Failed to mount EFS"
+        exit 1
+    fi
+    
+    # Verify mount
+    if mountpoint -q $DATA_DIR; then
+        print_status "✓ EFS mount verified"
+    else
+        print_error "✗ EFS not mounted properly"
+        exit 1
+    fi
+    
+    # Set permissions
+    sudo chown -R $USER:$USER $DATA_DIR
+}
+
+# Configure automatic EFS mounting
+configure_efs_automount() {
+    print_status "Configuring EFS auto-mount..."
+    
+    # Add to /etc/fstab for automatic mounting
+    FSTAB_ENTRY="$EFS_ID:/ $DATA_DIR efs _netdev,tls,iam 0 0"
+    
+    # Check if entry already exists
+    if ! grep -q "$EFS_ID" /etc/fstab; then
+        echo "$FSTAB_ENTRY" | sudo tee -a /etc/fstab
+        print_status "EFS auto-mount configured in /etc/fstab"
+    else
+        print_status "EFS already configured in /etc/fstab"
+    fi
+}
+
+# Create necessary directories
+create_directories() {
+    print_status "Creating data directories..."
+    sudo mkdir -p $DATA_DIR/api $DATA_DIR/server
+    sudo chown -R $USER:$USER $DATA_DIR
+}
+
+# Run RustDesk container with Tailscale IP and NO RELAY
+run_rustdesk_container() {
+    print_status "Setting up RustDesk container with Tailscale (RELAY DISABLED)..."
+
+    # Pull latest image
+    sudo docker pull $IMAGE
+
+    # Stop and remove existing container
+    sudo docker stop $CONTAINER_NAME 2>/dev/null || true
+    sudo docker rm $CONTAINER_NAME 2>/dev/null || true
+
+    print_status "Starting RustDesk container with Tailscale IP: $TAILSCALE_IP"
+    print_status "⚠️  RELAY CONNECTIONS ARE DISABLED - Only Tailscale VPN connections allowed"
+
+    # Run container WITHOUT relay server settings (forces direct connection only)
+    sudo docker run -d --name $CONTAINER_NAME \
+        -p 21114:21114 -p 21115:21115 -p 21116:21116 -p 21116:21116/udp -p 21117:21117 \
+        -p 21118:21118 -p 21119:21119 \
+        -v $DATA_DIR/server:/data \
+        -v $DATA_DIR/api:/app/data \
+        -e TZ=Asia/Shanghai \
+        -e ENCRYPTED_ONLY=1 \
+        -e ALWAYS_USE_RELAY=N \
+        -e DIRECT_IP_ACCESS=1 \
+        -e MUST_LOGIN=N \
+        -e RUSTDESK_API_RUSTDESK_ID_SERVER=$TAILSCALE_IP:21116 \
+        -e RUSTDESK_API_RUSTDESK_API_SERVER=http://$TAILSCALE_IP:21114 \
+        -e RUSTDESK_API_LANG=en \
+        -e RUSTDESK_API_APP_SHOW_SWAGGER=1 \
+        -e RUSTDESK_API_APP_REGISTER=false \
+        -e RUSTDESK_API_APP_TOKEN_EXPIRE=168h \
+        --restart unless-stopped $IMAGE
+
+    if [ $? -eq 0 ]; then
+        print_status "RustDesk container started successfully"
+    else
+        print_error "Failed to start RustDesk container"
+        exit 1
+    fi
+}
+
+# Setup Portainer
+run_portainer() {
+    print_status "Setting up Portainer..."
+
+    # Create docker volume
+    sudo docker volume create $PORTAINER_DATA_VOLUME
+
+    # Stop and remove existing container
+    sudo docker stop $PORTAINER_CONTAINER 2>/dev/null || true
+    sudo docker rm $PORTAINER_CONTAINER 2>/dev/null || true
+
+    # Run Portainer
+    sudo docker run -d --name $PORTAINER_CONTAINER \
+        -p 9443:9443 -p 8000:8000 \
+        --restart=always \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        -v $PORTAINER_DATA_VOLUME:/data \
+        portainer/portainer-ce:lts
+
+    if [ $? -eq 0 ]; then
+        print_status "Portainer started successfully"
+    else
+        print_error "Failed to start Portainer"
+        exit 1
+    fi
+}
+
+# Setup backup automation
+setup_backup_cron() {
+    print_status "Setting up automated backups..."
+    
+    BACKUP_SCRIPT="/usr/local/bin/rustdesk_backup.sh"
+    
+    sudo tee $BACKUP_SCRIPT > /dev/null <<EOF
+#!/bin/bash
+# RustDesk Backup Script
+DATE=\$(date +%Y%m%d_%H%M%S)
+BACKUP_DIR="/var/backups/rustdesk"
+mkdir -p \$BACKUP_DIR
+tar czf \$BACKUP_DIR/rustdesk_backup_\$DATE.tar.gz -C $DATA_DIR .
+# Keep only last 7 days of backups
+find \$BACKUP_DIR -name "rustdesk_backup_*.tar.gz" -mtime +7 -delete
+echo "\$(date): Backup completed - rustdesk_backup_\$DATE.tar.gz"
+EOF
+    
+    sudo chmod +x $BACKUP_SCRIPT
+    
+    # Add to crontab (daily backup at 3 AM)
+    (crontab -l 2>/dev/null | grep -v "$BACKUP_SCRIPT"; echo "0 3 * * * $BACKUP_SCRIPT") | crontab -
+    
+    print_status "Backup cron job configured for daily 3 AM"
+}
+
+# Wait for services and get credentials
+wait_for_services() {
+    print_status "Waiting for services to initialize..."
+    sleep 15
+    
+    # Get admin password from logs
+    print_status "Retrieving admin password from container logs..."
+    ADMIN_PASSWORD=$(sudo docker logs $CONTAINER_NAME 2>&1 | grep -i "admin password" | tail -1 | awk -F': ' '{print $2}' | tr -d ' \n\r')
+    
+    if [ -z "$ADMIN_PASSWORD" ]; then
+        # Try alternative patterns
+        ADMIN_PASSWORD=$(sudo docker logs $CONTAINER_NAME 2>&1 | grep -i "password.*admin\|admin.*password" | tail -1 | awk '{print $NF}' | tr -d ' \n\r')
+    fi
+    
+    # Get public key
+    print_status "Retrieving server public key..."
+    sleep 5
+    PUBLIC_KEY=$(sudo docker exec $CONTAINER_NAME cat /data/id_ed25519.pub 2>/dev/null | tr -d ' \n\r')
+    
+    if [ -z "$PUBLIC_KEY" ]; then
+        PUBLIC_KEY=$(sudo docker exec $CONTAINER_NAME find /data /app -name "*.pub" -exec cat {} \; 2>/dev/null | head -1 | tr -d ' \n\r')
+    fi
+}
+
+# Verify installation
+verify_installation() {
+    print_status "Verifying installation..."
+    
+    # Check if containers are running
+    if sudo docker ps | grep -q $CONTAINER_NAME; then
+        print_status "✓ RustDesk container is running"
+    else
+        print_error "✗ RustDesk container is not running"
+        return 1
+    fi
+    
+    if sudo docker ps | grep -q $PORTAINER_CONTAINER; then
+        print_status "✓ Portainer container is running"
+    else
+        print_error "✗ Portainer container is not running"
+        return 1
+    fi
+    
+    # Check Tailscale status
+    if tailscale status >/dev/null 2>&1; then
+        print_status "✓ Tailscale VPN is connected"
+    else
+        print_warning "⚠ Tailscale may not be connected"
+    fi
+    
+    # Test API endpoint
+    if curl -s --max-time 10 http://localhost:21114/_admin/ >/dev/null 2>&1; then
+        print_status "✓ RustDesk API is responding"
+    else
+        print_warning "⚠ RustDesk API may not be ready yet (this is normal)"
+    fi
+}
+
+# Display final information
+display_final_info() {
+    echo ""
+    echo "=================================================="
+    echo -e "${GREEN}  RustDesk + Tailscale + EFS Installation Complete!${NC}"
+    echo "=================================================="
+    echo ""
+    echo -e "${YELLOW}🌐 Access URLs (via Tailscale ONLY):${NC}"
+    echo "   RustDesk Admin Panel: http://$TAILSCALE_IP:21114/_admin/"
+    echo "   RustDesk Web Client:  http://$TAILSCALE_IP:21114/"
+    echo "   Portainer:           https://$TAILSCALE_IP:9443/"
+    echo "   API Documentation:   http://$TAILSCALE_IP:21114/swagger/index.html"
+    echo ""
+    echo -e "${YELLOW}🔐 Credentials:${NC}"
+    echo "   Admin Username: admin"
+    if [ ! -z "$ADMIN_PASSWORD" ]; then
+        echo "   Admin Password: $ADMIN_PASSWORD"
+    else
+        echo "   Admin Password: Check logs with: sudo docker logs $CONTAINER_NAME | grep -i password"
+    fi
+    echo ""
+    echo -e "${YELLOW}🔧 RustDesk Client Configuration:${NC}"
+    echo "   ID Server:    $TAILSCALE_IP:21116"
+    echo "   Relay Server: DISABLED (Direct connection only)"
+    echo "   API Server:   http://$TAILSCALE_IP:21114"
+    if [ ! -z "$PUBLIC_KEY" ]; then
+        echo "   Public Key:   $PUBLIC_KEY"
+    else
+        echo "   Public Key:   Run: sudo docker exec $CONTAINER_NAME cat /data/id_ed25519.pub"
+    fi
+    echo ""
+    echo -e "${YELLOW}🔐 Tailscale Network:${NC}"
+    echo "   Your Tailscale IP: $TAILSCALE_IP"
+    echo "   Network Status:    $(tailscale status --json 2>/dev/null | jq -r '.Self.Online' || echo 'Connected')"
+    echo ""
+    echo -e "${YELLOW}📁 EFS Storage:${NC}"
+    echo "   EFS ID:        $EFS_ID"
+    echo "   Mount Point:   $DATA_DIR"
+    echo "   Auto-mount:    Enabled in /etc/fstab"
+    echo ""
+    echo -e "${YELLOW}💡 Important Notes:${NC}"
+    echo "   ⚠️  RELAY IS DISABLED - Connections work ONLY via Tailscale VPN"
+    echo "   1. Install Tailscale on all client devices"
+    echo "   2. Use Tailscale IP ($TAILSCALE_IP) for RustDesk ID Server"
+    echo "   3. Connect using direct IP or ID (no relay fallback)"
+    echo "   4. Change admin password: sudo docker exec rustdesk-server /app/apimain reset-admin-pwd YOUR_PASSWORD"
+    echo "   5. Monitor logs: sudo docker logs -f $CONTAINER_NAME"
+    echo ""
+    echo -e "${YELLOW}📱 Client Setup Instructions:${NC}"
+    echo "   1. Install Tailscale on client device: https://tailscale.com/download"
+    echo "   2. Connect to your Tailscale network"
+    echo "   3. Install RustDesk client"
+    echo "   4. Go to Settings → Network"
+    echo "   5. Set ID Server: $TAILSCALE_IP:21116"
+    echo "   6. Leave Relay Server EMPTY or set to 127.0.0.1"
+    echo "   7. Apply settings and restart RustDesk"
+    echo ""
+    echo -e "${GREEN}✅ Installation completed successfully!${NC}"
+    echo ""
+}
+
+# Main execution
+main() {
+    echo -e "${GREEN}"
+    echo "========================================================="
+    echo "  RustDesk + Tailscale VPN + EFS + Portainer Setup"
+    echo "  AWS Ubuntu - Secure Direct Connections Only"
+    echo "========================================================="
+    echo -e "${NC}"
+    
+    check_root
+    install_dependencies
+    install_tailscale
+    setup_tailscale
+    
+    # Get Tailscale IP after setup
+    TAILSCALE_IP=$(get_tailscale_ip)
+    
+    if [ -z "$TAILSCALE_IP" ]; then
+        print_error "Could not detect Tailscale IP. Please ensure Tailscale is connected."
+        exit 1
+    fi
+    
+    print_status "Using Tailscale IP: $TAILSCALE_IP"
+    
+    install_efs_utils
+    mount_efs
+    configure_efs_automount
+    create_directories
+    run_rustdesk_container
+    run_portainer
+    setup_backup_cron
+    wait_for_services
+    verify_installation
+    display_final_info
+}
+
+# Run main function
+main "$@"
+Step-by-Step Setup Instructions
+1. Prepare Your EC2 Instance
+bash
+# SSH into your EC2 instance
+ssh -i your-key.pem ubuntu@your-ec2-ip
+
+# Update system
+sudo apt update && sudo apt upgrade -y
+2. Upload and Run the Script
+bash
+# Save the script
+nano setup_rustdesk_tailscale_efs.sh
+
+# Make it executable
+chmod +x setup_rustdesk_tailscale_efs.sh
+
+# Run the script
+./setup_rustdesk_tailscale_efs.sh
+3. Authenticate Tailscale
+The script will pause and ask you to authenticate Tailscale:​
+
+bash
+# Run this command when prompted
+sudo tailscale up
+
+# Follow the URL provided to authenticate in your browser
+# Then run the script again
+./setup_rustdesk_tailscale_efs.sh
+4. Configure RustDesk Clients
+On each client device (Windows/Mac/Linux/Android):​​
+
+A. Install Tailscale:
+
+bash
+# Visit: https://tailscale.com/download
+# Install for your platform
+# Connect to your Tailscale network
+B. Configure RustDesk Client:
+
+Open RustDesk
+
+Go to Settings → Network
+
+ID Server: Enter YOUR_TAILSCALE_IP:21116
+
+Relay Server: Leave EMPTY or set to 127.0.0.1
+
+Click Apply
+
+Restart RustDesk client
+
+5. Security Group Configuration
+EC2 Security Group Inbound Rules:
+
+NFS: Port 2049 (for EFS)
+
+Custom TCP: Ports 21114-21119 (source: your Tailscale network only)
+
+HTTPS: Port 9443 (Portainer - Tailscale IPs only)
+
+Note: Since you're using Tailscale, you can restrict public access and only allow Tailscale subnet (100.64.0.0/10).​
+
+6. Verify Installation
+bash
+# Check Tailscale status
+tailscale status
+
+# Check EFS mount
+df -h | grep efs
+
+# Check Docker containers
+sudo docker ps
+
+# Test RustDesk API
+curl http://localhost:21114/_admin/
+7. Connect from Client
+Instead of using RustDesk ID, use direct IP connection:​​
+
+text
+Method 1: Direct IP Connection
+- Open RustDesk client
+- Enter: YOUR_TAILSCALE_IP
+- Click Connect
+
+Method 2: Using ID (if configured)
+- Use RustDesk ID normally
+- Connection will route through Tailscale (no public relay)
+Key Benefits of This Setup
+Maximum Security: All connections encrypted via Tailscale VPN​
+
+No Public Relay: Relay connections disabled, only direct VPN connections​
+
+Persistent Storage: EFS ensures data survives instance replacement
+
+Zero-Trust Network: Tailscale provides mesh VPN with automatic NAT traversal​
+
+Low Latency: Direct connections via Tailscale faster than relay​
+
+Multi-Device: Connect from any device with Tailscale installed
+
+Troubleshooting
+If RustDesk won't connect:
+
+bash
+# Verify Tailscale is connected on both ends
+tailscale ping YOUR_OTHER_DEVICE_IP
+
+# Check RustDesk logs
+sudo docker logs rustdesk-server
+
+# Ensure relay is disabled in client settings
+# ID Server: YOUR_TAILSCALE_IP:21116
+# Relay Server: 127.0.0.1 or empty
+
+
+this ai all my instructtion 
+
+also i need to set nngnix proxis manager + nextcloude for the same vm or diffrant so amek the robust and reuable script ther we set all in aws accont 
