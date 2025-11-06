@@ -22,8 +22,11 @@ data "aws_vpc" "default" {
   default = true
 }
 
-data "aws_subnet_ids" "default" {
-  vpc_id = data.aws_vpc.default.id
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
 }
 
 resource "aws_security_group" "ec2_sg" {
@@ -94,9 +97,9 @@ resource "aws_efs_file_system" "efs_storage" {
 }
 
 resource "aws_efs_mount_target" "efs_mount" {
-  count           = length(data.aws_subnet_ids.default.ids)
+  count           = length(data.aws_subnets.default.ids)
   file_system_id  = aws_efs_file_system.efs_storage.id
-  subnet_id       = element(data.aws_subnet_ids.default.ids, count.index)
+  subnet_id       = element(data.aws_subnets.default.ids, count.index)
   security_groups = [aws_security_group.efs_sg.id]
 }
 
