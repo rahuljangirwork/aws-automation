@@ -3,65 +3,44 @@
 source "$(dirname "${BASH_SOURCE[0]}")/config.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
 
-install_efs_utils() {
-    print_status "Installing Amazon EFS utilities..."
-    
-    sudo apt-get update
-    sudo apt-get install -y git binutils nfs-common
-    
-    # Clean up any previous failed attempts
-    rm -rf /tmp/efs-utils
-
-    # Clone and build amazon-efs-utils
-    cd /tmp
-    git clone https://github.com/aws/efs-utils
-    cd efs-utils
-    ./build-deb.sh
-    sudo apt-get -y install ./build/amazon-efs-utils*deb
-    
-    # Clean up
-    cd ~
-    rm -rf /tmp/efs-utils
-    
-    print_status "EFS utilities installed successfully"
-}
-
 mount_efs() {
-    print_status "Mounting EFS file system..."
+    print_status "Mounting EFS file system using NFS..."
     
     # Create mount point
     sudo mkdir -p $DATA_DIR
     
-    # Mount EFS using mount helper
-    sudo mount -t efs -o tls $EFS_ID:/ $DATA_DIR
+    EFS_DNS="${EFS_ID}.efs.${AWS_REGION}.amazonaws.com"
     
-    if [ $? -eq 0 ]; then
-        print_status "EFS mounted successfully at $DATA_DIR"
+    # Mount EFS using NFS
+    # Check if already mounted to prevent errors on re-run
+    if ! mountpoint -q $DATA_DIR; then
+        sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport ${EFS_DNS}:/ $DATA_DIR
+        
+        if [ $? -ne 0 ]; then
+            print_error "Failed to mount EFS. Make sure the EFS Security Group allows NFS traffic from this instance."
+            exit 1
+        fi
     else
-        print_error "Failed to mount EFS"
-        exit 1
+        print_status "EFS already mounted at $DATA_DIR"
     fi
-    
-    # Verify mount
+
+    # Verify mount & set permissions
     if mountpoint -q $DATA_DIR; then
         print_status "✓ EFS mount verified"
+        sudo chown -R $USER:$USER $DATA_DIR
     else
         print_error "✗ EFS not mounted properly"
         exit 1
     fi
-    
-    # Set permissions
-    sudo chown -R $USER:$USER $DATA_DIR
 }
 
 configure_efs_automount() {
     print_status "Configuring EFS auto-mount..."
     
-    # Add to /etc/fstab for automatic mounting
-    FSTAB_ENTRY="$EFS_ID:/ $DATA_DIR efs _netdev,tls,iam 0 0"
+    EFS_DNS="${EFS_ID}.efs.${AWS_REGION}.amazonaws.com"
+    FSTAB_ENTRY="${EFS_DNS}:/ $DATA_DIR nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport,_netdev 0 0"
     
-    # Check if entry already exists
-    if ! grep -q "$EFS_ID" /etc/fstab; then
+    if ! grep -q "${EFS_DNS}" /etc/fstab; then
         echo "$FSTAB_ENTRY" | sudo tee -a /etc/fstab
         print_status "EFS auto-mount configured in /etc/fstab"
     else

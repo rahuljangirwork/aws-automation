@@ -35,7 +35,7 @@ main() {
     
     print_status "Using Tailscale IP: $TAILSCALE_IP"
     
-    install_efs_utils
+
     mount_efs
     configure_efs_automount
     create_directories
