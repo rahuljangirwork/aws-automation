@@ -4,8 +4,8 @@ run_npm() {
     print_status "Setting up Nginx Proxy Manager..."
 
     # Create directories on EFS
-    mkdir -p "$NPM_DATA_DIR/data"
-    mkdir -p "$NPM_DATA_DIR/letsencrypt"
+    sudo mkdir -p "$NPM_DATA_DIR/data"
+    sudo mkdir -p "$NPM_DATA_DIR/letsencrypt"
 
     # Create Docker Compose file
     tee "$NPM_COMPOSE_FILE" > /dev/null <<EOF

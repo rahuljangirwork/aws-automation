@@ -4,8 +4,8 @@ run_pihole() {
     print_status "Setting up Pi-hole + Unbound..."
 
     # Create directories on EFS
-    mkdir -p "$PIHOLE_DATA_DIR/pihole"
-    mkdir -p "$PIHOLE_DATA_DIR/unbound"
+    sudo mkdir -p "$PIHOLE_DATA_DIR/pihole"
+    sudo mkdir -p "$PIHOLE_DATA_DIR/unbound"
 
     # Create Docker Compose file
     tee "$PIHOLE_COMPOSE_FILE" > /dev/null <<EOF

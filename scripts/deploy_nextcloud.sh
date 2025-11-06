@@ -4,8 +4,8 @@ run_nextcloud() {
     print_status "Setting up Nextcloud..."
 
     # Create directories on EFS
-    mkdir -p "$NC_DATA_DIR/html"
-    mkdir -p "$NC_DATA_DIR/db"
+    sudo mkdir -p "$NC_DATA_DIR/html"
+    sudo mkdir -p "$NC_DATA_DIR/db"
 
     # Create Docker Compose file
     tee "$NC_COMPOSE_FILE" > /dev/null <<EOF
