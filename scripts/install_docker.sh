@@ -5,7 +5,7 @@ set -e
 # Source the config file to get variables
 source "$(dirname "$0")/config.sh"
 # Source the print_status function
-source "$(dirname "$0")/helpers.sh"
+source "$(dirname "$0")/utils.sh"
 
 install_dependencies() {
     print_status "Installing prerequisites including unzip and Docker..."

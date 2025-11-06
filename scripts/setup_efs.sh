@@ -1,7 +1,7 @@
 #!/bin/bash
 
-source ./scripts/config.sh
-source ./scripts/utils.sh
+source ./config.sh
+source ./utils.sh
 
 install_efs_utils() {
     print_status "Installing Amazon EFS utilities..."
