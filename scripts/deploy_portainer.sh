@@ -15,6 +15,8 @@ run_portainer() {
 
     # Run Portainer
     sudo docker run -d --name $PORTAINER_CONTAINER \
+        --memory=192m \
+        --memory-swap=256m \
         -p 9443:9443 -p 8000:8000 \
         --restart=always \
         -v /var/run/docker.sock:/var/run/docker.sock \

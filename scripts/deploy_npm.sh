@@ -15,6 +15,7 @@ services:
     image: 'jc21/nginx-proxy-manager:latest'
     container_name: '${NPM_CONTAINER}'
     restart: unless-stopped
+    mem_limit: 256m
     ports:
       # These ports are in use by the web server
       - '80:80'

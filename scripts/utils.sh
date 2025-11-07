@@ -23,8 +23,8 @@ print_error() {
 
 # Function to check if the script is run as root
 check_root() {
-    if [ "$EUID" -eq 0 ]; then
-        print_error "This script must not be run as root. It uses 'sudo' internally."
+    if [ "$EUID" -ne 0 ]; then
+        print_error "Run this script with sudo or as root."
         exit 1
     fi
 }
