@@ -1,0 +1,15 @@
+================================================== RustDesk + Tailscale + EFS Installation Complete!
+================================================== 🌐 Access URLs (via Tailscale ONLY): RustDesk Admin Panel:
+http://100.107.213.122:21114/_admin/ RustDesk Web Client: http://100.107.213.122:21114/ Portainer:
+https://100.107.213.122:9443/ API Documentation: http://100.107.213.122:21114/swagger/index.html 🔐 Credentials: Admin
+Username: admin Admin Password: pHlMxVKZ(/home/runner/work/rustdesk-api/rustdesk-api/cmd/apimain.go:348main.Migrate) 🔧
+RustDesk Client Configuration: ID Server: 100.107.213.122:21116 Relay Server: DISABLED (Direct connection only) API
+Server: http://100.107.213.122:21114 Public Key: WNqbdbxMfXwtYsk+LCDlsV2LiBci9UVCm2xoOpe3Tdw= 🔐 Tailscale Network: Your
+Tailscale IP: 100.107.213.122 Network Status: true 📁 EFS Storage: EFS ID: fs-0b827bf76a16f14bc Mount Point:
+/data/rustdesk Auto-mount: Enabled in /etc/fstab 💡 Important Notes: ⚠️ RELAY IS DISABLED - Connections work ONLY via
+Tailscale VPN 1. Install Tailscale on all client devices 2. Use Tailscale IP (100.107.213.122) for RustDesk ID Server 3.
+Connect using direct IP or ID (no relay fallback) 4. Change admin password: sudo docker exec rustdesk-server
+/app/apimain reset-admin-pwd YOUR_PASSWORD 5. Monitor logs: sudo docker logs -f rustdesk-server 📱 Client Setup
+Instructions: 1. Install Tailscale on client device: https://tailscale.com/download 2. Connect to your Tailscale network
+3. Install RustDesk client 4. Go to Settings → Network 5. Set ID Server: 100.107.213.122:21116 6. Leave Relay Server
+EMPTY or set to 127.0.0.1 7. Apply settings and restart RustDesk ✅ Installation completed successfully!

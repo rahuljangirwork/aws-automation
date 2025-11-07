@@ -168,6 +168,8 @@ verify_and_display_info() {
         print_warning "[WARN] Tailscale may not be connected"
     fi
 
+    source "$SCRIPT_DIR/scripts/config.sh"
+
     echo ""
     echo -e "${GREEN}${BOLD}==================================================${NC}"
     echo -e "${GREEN}${BOLD}   RustDesk + Tailscale + EFS Installation Complete!${NC}"
@@ -217,6 +219,33 @@ verify_and_display_info() {
         echo -e "${BLUE}   Network Status:    true${NC}"
         echo ""
     fi
+
+    echo -e "${CYAN}${BOLD}📁 EFS Storage:${NC}"
+    echo -e "${BLUE}   EFS ID: ${EFS_ID}${NC}"
+    echo -e "${BLUE}   Mount Point: ${DATA_DIR}${NC}"
+    echo -e "${BLUE}   Auto-mount: Enabled in /etc/fstab${NC}"
+    echo ""
+
+    echo -e "${CYAN}${BOLD}💡 Important Notes:${NC}"
+    echo -e "${YELLOW}   ⚠️ RELAY IS DISABLED - Connections work ONLY via Tailscale VPN${NC}"
+    echo -e "${BLUE}   1. Install Tailscale on all client devices${NC}"
+    echo -e "${BLUE}   2. Use Tailscale IP (${TAILSCALE_IP}) for RustDesk ID Server${NC}"
+    echo -e "${BLUE}   3. Connect using direct IP or ID (no relay fallback)${NC}"
+    echo -e "${BLUE}   4. Change admin password: sudo docker exec rustdesk-server /app/apimain reset-admin-pwd YOUR_PASSWORD${NC}"
+    echo -e "${BLUE}   5. Monitor logs: sudo docker logs -f rustdesk-server${NC}"
+    echo ""
+
+    echo -e "${CYAN}${BOLD}📱 Client Setup Instructions:${NC}"
+    echo -e "${BLUE}   1. Install Tailscale on client device: https://tailscale.com/download${NC}"
+    echo -e "${BLUE}   2. Connect to your Tailscale network${NC}"
+    echo -e "${BLUE}   3. Install RustDesk client${NC}"
+    echo -e "${BLUE}   4. Go to Settings → Network${NC}"
+    echo -e "${BLUE}   5. Set ID Server: ${TAILSCALE_IP}:21116${NC}"
+    echo -e "${BLUE}   6. Leave Relay Server EMPTY or set to 127.0.0.1${NC}"
+    echo -e "${BLUE}   7. Apply settings and restart RustDesk${NC}"
+    echo ""
+
+    echo -e "${GREEN}✅ Installation completed successfully!${NC}"
 }
 
 setup_backup_cron() {

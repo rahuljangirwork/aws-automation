@@ -1,0 +1,77 @@
+ubuntu@ip-172-31-12-204:~/aws-automation$ chmod +x * ubuntu@ip-172-31-12-204:~/aws-automation$ cd scripts/
+ubuntu@ip-172-31-12-204:~/aws-automation/scripts$ chmod +x * ubuntu@ip-172-31-12-204:~/aws-automation/scripts$ cd ..
+ubuntu@ip-172-31-12-204:~/aws-automation$ sudo ./setup.sh =========================================================
+Interactive AWS Self-Hosted Service Installer ========================================================= -----> Bootstrap
+previously completed (2025-11-07T07:13:25+00:00). Skipping. -----> Using Tailscale IP: 100.120.150.72 -----> Preparing
+shared RustDesk data directories... Please choose which services to install: 1) Portainer 2) RustDesk Server 3)
+Nextcloud 4) Nginx Proxy Manager You can select multiple services. For example, enter: 1 2 Enter your choices
+(space-separated): 1 -----> Starting installation of selected services... -----> Installing Portainer... -----> Setting
+up Portainer... portainer_data portainer portainer 40fb04a5f27d0dde4f7bfdda71af66eba15a318b19aca06e1802a6f01a6ea5fb
+-----> Portainer started successfully -----> Waiting for services to initialize... -----> Verifying installations...
+-----> [OK] Portainer container is running -----> [OK] Tailscale VPN is connected
+================================================== RustDesk + Tailscale + EFS Installation Complete!
+================================================== 🌐 Access URLs (via Tailscale ONLY): Portainer:
+https://100.120.150.72:9443/ 🔐 Tailscale Network: Your Tailscale IP: 100.120.150.72 Network Status: true
+ubuntu@ip-172-31-12-204:~/aws-automation$ sudo ./setup.sh =========================================================
+Interactive AWS Self-Hosted Service Installer ========================================================= -----> Bootstrap
+previously completed (2025-11-07T07:13:25+00:00). Skipping. -----> Using Tailscale IP: 100.120.150.72 -----> Preparing
+shared RustDesk data directories... Please choose which services to install: 1) Portainer 2) RustDesk Server 3)
+Nextcloud 4) Nginx Proxy Manager You can select multiple services. For example, enter: 1 2 Enter your choices
+(space-separated): 1 -----> Starting installation of selected services... -----> Installing Portainer... -----> Setting
+up Portainer... portainer_data portainer portainer 57802cb8758e329d37df15eed24bc46f15c65a084fb2bdaf42e56ae5c1a6871a
+-----> Portainer started successfully -----> Waiting for services to initialize... -----> Verifying installations...
+-----> [OK] Portainer container is running -----> [OK] Tailscale VPN is connected
+================================================== RustDesk + Tailscale + EFS Installation Complete!
+================================================== 🌐 Access URLs (via Tailscale ONLY): Portainer:
+https://100.120.150.72:9443/ 🔐 Tailscale Network: Your Tailscale IP: 100.120.150.72 Network Status: true
+ubuntu@ip-172-31-12-204:~/aws-automation$ sudo ./setup.sh =========================================================
+Interactive AWS Self-Hosted Service Installer ========================================================= -----> Bootstrap
+previously completed (2025-11-07T07:13:25+00:00). Skipping. -----> Using Tailscale IP: 100.120.150.72 -----> Preparing
+shared RustDesk data directories... Please choose which services to install: 1) Portainer 2) RustDesk Server 3)
+Nextcloud 4) Nginx Proxy Manager You can select multiple services. For example, enter: 1 2 Enter your choices
+(space-separated): 2 -----> Starting installation of selected services... -----> Installing RustDesk Server... ----->
+Setting up RustDesk container with Tailscale (RELAY DISABLED)... -----> Preparing shared RustDesk data directories...
+full-s6: Pulling from lejianwen/rustdesk-api Digest:
+sha256:c9da4a1c452a17bea27a9774d3bc5fe493322c58065584f955e3a6ecb8690e88 Status: Image is up to date for
+lejianwen/rustdesk-api:full-s6 docker.io/lejianwen/rustdesk-api:full-s6 rustdesk-server rustdesk-server -----> Starting
+RustDesk container with Tailscale IP: 100.120.150.72 -----> [!] Relay connections are disabled; clients must use
+Tailscale VPN. f195eb9c2dd79707ea95e7d50fac992d851d708137578093c4f8e07f42d8e5c8 -----> RustDesk container started
+successfully -----> Waiting for admin credentials to be generated... ubuntu@ip-172-31-12-204:~/aws-automation$ sudo
+./setup.sh 3 -----> WARNING: Unknown option: 3 Usage: ./setup.sh [options] Options: bootstrap Run only the
+prerequisite/bootstrap phase (same as ./bootstrap.sh) services Run only the interactive container deployment phase (same
+as ./deploy_services.sh) all (default) Run bootstrap (skipping if already completed) and then deploy services
+--force-bootstrap Re-run bootstrap phase even if it was completed earlier -h, --help Show this help text
+ubuntu@ip-172-31-12-204:~/aws-automation$ sudo ./setup.sh 3 -----> WARNING: Unknown option: 3 Usage: ./setup.sh
+[options] Options: bootstrap Run only the prerequisite/bootstrap phase (same as ./bootstrap.sh) services Run only the
+interactive container deployment phase (same as ./deploy_services.sh) all (default) Run bootstrap (skipping if already
+completed) and then deploy services --force-bootstrap Re-run bootstrap phase even if it was completed earlier -h, --help
+Show this help text ubuntu@ip-172-31-12-204:~/aws-automation$ sudo ./setup.sh
+========================================================= Interactive AWS Self-Hosted Service Installer
+========================================================= -----> Bootstrap previously completed
+(2025-11-07T07:13:25+00:00). Skipping. -----> Using Tailscale IP: 100.120.150.72 -----> Preparing shared RustDesk data
+directories... Please choose which services to install: 1) Portainer 2) RustDesk Server 3) Nextcloud 4) Nginx Proxy
+Manager You can select multiple services. For example, enter: 1 2 Enter your choices (space-separated): 3 ----->
+Starting installation of selected services... -----> Installing Nextcloud... -----> Setting up Nextcloud... ----->
+Starting Nextcloud and MariaDB containers... time="2025-11-07T08:30:33Z" level=warning
+msg="/data/nextcloud/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to
+avoid potential confusion" Container nextcloud-db Running Container nextcloud Running -----> Nextcloud setup complete.
+Nextcloud will be available at http://100.120.150.72:8080 after a few minutes of initialization. You will be prompted to
+create an admin account on your first visit. -----> Waiting for services to initialize... -----> Verifying
+installations... -----> [OK] Nextcloud container is running -----> [OK] Tailscale VPN is connected
+================================================== RustDesk + Tailscale + EFS Installation Complete!
+================================================== 🌐 Access URLs (via Tailscale ONLY): 🔐 Tailscale Network: Your
+Tailscale IP: 100.120.150.72 Network Status: true ubuntu@ip-172-31-12-204:~/aws-automation$ sudo ./setup.sh
+========================================================= Interactive AWS Self-Hosted Service Installer
+========================================================= -----> Bootstrap previously completed
+(2025-11-07T07:13:25+00:00). Skipping. -----> Using Tailscale IP: 100.120.150.72 -----> Preparing shared RustDesk data
+directories... Please choose which services to install: 1) Portainer 2) RustDesk Server 3) Nextcloud 4) Nginx Proxy
+Manager You can select multiple services. For example, enter: 1 2 Enter your choices (space-separated): 4 ----->
+Starting installation of selected services... -----> Installing Nginx Proxy Manager... -----> Setting up Nginx Proxy
+Manager... -----> Starting Nginx Proxy Manager container... time="2025-11-07T08:31:09Z" level=warning
+msg="/data/npm/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid
+potential confusion" Container npm Running -----> Nginx Proxy Manager setup complete. You can access the admin panel at
+http://100.120.150.72:81 Default Admin User: Email: admin@example.com Password: changeme -----> Waiting for services to
+initialize... -----> Verifying installations... -----> [OK] Nginx Proxy Manager container is running -----> [OK]
+Tailscale VPN is connected ================================================== RustDesk + Tailscale + EFS Installation
+Complete! ================================================== 🌐 Access URLs (via Tailscale ONLY): 🔐 Tailscale Network:
+Your Tailscale IP: 100.120.150.72 Network Status: true ubuntu@ip-172-31-12-204:~/aws-automation$

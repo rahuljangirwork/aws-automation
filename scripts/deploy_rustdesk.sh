@@ -48,7 +48,7 @@ run_rustdesk_container() {
         print_status "Waiting for admin credentials to be generated..."
         local end_time=$((SECONDS + 60))
         while [ $SECONDS -lt $end_time ]; do
-            ADMIN_PASSWORD=$(sudo docker logs "$CONTAINER_NAME" 2>&1 | grep 'Admin Password:' | head -1 | awk -F'Admin Password: ' '{print $2}' | cut -d'(' -f1)
+            ADMIN_PASSWORD=$(sudo docker logs "$CONTAINER_NAME" 2>&1 | grep 'Admin Password:' | head -1 | awk -F'Admin Password: ' '{print $2}' | cut -d'(' -f1 || true)
             if [ -n "$ADMIN_PASSWORD" ]; then
                 print_status "Credentials extracted successfully."
                 break
