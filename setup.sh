@@ -198,6 +198,10 @@ main() {
     fi
     print_status "Using Tailscale IP: $TAILSCALE_IP"
 
+    print_status "Applying workaround for sudo/DNS resolution issue..."
+    HOSTNAME=$(hostname)
+    echo "127.0.0.1 $HOSTNAME" | sudo tee -a /etc/hosts > /dev/null
+
     print_status "Forcing DNS to AWS default to ensure EFS resolution..."
     sudo rm /etc/resolv.conf
     echo "nameserver 172.31.0.2" | sudo tee /etc/resolv.conf > /dev/null
