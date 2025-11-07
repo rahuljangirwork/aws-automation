@@ -19,34 +19,33 @@ install_tailscale() {
 
 setup_tailscale() {
     print_status "Setting up Tailscale connection..."
-    
-    # Check if already connected
-    if tailscale status >/dev/null 2>&1; then
-        print_status "Tailscale is already running"
-        TAILSCALE_IP=$(get_tailscale_ip)
-        
-        if [ ! -z "$TAILSCALE_IP" ]; then
-            print_status "Current Tailscale IP: $TAILSCALE_IP"
-        fi
+
+    # Always run 'tailscale up' to ensure correct settings
+    if [ -n "$TS_AUTH_KEY" ]; then
+        print_status "Authenticating with auth key..."
+        sudo tailscale up --authkey="${TS_AUTH_KEY}" --accept-dns=false --hostname="aws-rustdesk-server"
     else
-        print_warning "Tailscale needs to be authenticated"
-        echo ""
-        echo "=================================================="
-        echo -e "${YELLOW}TAILSCALE AUTHENTICATION REQUIRED${NC}"
-        echo "=================================================="
-        echo ""
-        echo "Run this command to authenticate Tailscale:"
-        echo -e "${GREEN}sudo tailscale up${NC}"
-        echo ""
-        echo "This will provide a URL to authenticate in your browser."
-        echo "After authentication, run this script again."
-        echo ""
-        exit 0
+        print_status "Running tailscale up... If needed, please authenticate in your browser."
+        sudo tailscale up --accept-dns=false --hostname="aws-rustdesk-server"
+    fi
+
+    # Check status after attempting to bring it up
+    if ! tailscale status >/dev/null 2>&1; then
+        print_error "Tailscale failed to connect. Please check your authentication or network."
+        exit 1
+    fi
+
+    TAILSCALE_IP=$(get_tailscale_ip)
+    if [ ! -z "$TAILSCALE_IP" ]; then
+        print_status "Tailscale is running. Current IP: $TAILSCALE_IP"
+    else
+        print_error "Could not get Tailscale IP after setup."
+        exit 1
     fi
     
-    # Enable IP forwarding for Tailscale (optional but recommended)
-    echo 'net.ipv4.ip_forward = 1' | sudo tee -a /etc/sysctl.conf
-    echo 'net.ipv6.conf.all.forwarding = 1' | sudo tee -a /etc/sysctl.conf
+    # Enable IP forwarding
+    echo 'net.ipv4.ip_forward = 1' | sudo tee /etc/sysctl.conf > /dev/null
+    echo 'net.ipv6.conf.all.forwarding = 1' | sudo tee -a /etc/sysctl.conf > /dev/null
     sudo sysctl -p
 }
 
