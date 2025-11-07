@@ -1,265 +1,139 @@
 #!/bin/bash
 
-declare -a CHOICES
+SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-run_services_phase() {
-    if ! tailscale status >/dev/null 2>&1; then
-        print_error "Tailscale VPN is not connected. Run './bootstrap.sh' first."
-        exit 1
-    fi
+source "$SCRIPT_ROOT/config.sh"
+source "$SCRIPT_ROOT/utils.sh"
 
-    TAILSCALE_IP=$(get_tailscale_ip)
-    if [[ -z "$TAILSCALE_IP" ]]; then
-        print_error "Could not detect Tailscale IP."
-        exit 1
-    fi
-    export TAILSCALE_IP
-    print_status "Using Tailscale IP: $TAILSCALE_IP"
+# Color codes
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m'
 
-    if ! mountpoint -q "$DATA_DIR"; then
-        print_warning "EFS is not mounted at $DATA_DIR. Attempting to mount now..."
-        mount_efs
-    fi
-
-    if ! mountpoint -q "$DATA_DIR"; then
-        print_error "EFS is still not mounted. Aborting container deployment."
-        exit 1
-    fi
-
-    create_directories
-
-    show_menu_and_get_choices
-    warn_if_low_memory_selection
-    install_selected_apps
-
-    if [[ " ${CHOICES[*]} " =~ " 2 " ]]; then
-        setup_backup_cron
-    fi
-
-    print_status "Waiting for services to initialize..."
-    sleep 15
-
-    verify_and_display_info
-}
-
-show_menu_and_get_choices() {
-    echo -e "${YELLOW}Please choose which services to install:${NC}"
-    echo "  1) Portainer"
-    echo "  2) RustDesk Server"
-    echo "  3) Nextcloud"
-    echo "  4) Nginx Proxy Manager"
+show_service_menu() {
     echo ""
-    echo "You can select multiple services. For example, enter: 1 2"
+    echo -e "${CYAN}${BOLD}========================================${NC}"
+    echo -e "${CYAN}${BOLD}AWS Self-Hosted Services Installer${NC}"
+    echo -e "${CYAN}${BOLD}========================================${NC}"
     echo ""
-    read -p "Enter your choices (space-separated): " -a CHOICES
-
-    if [ ${#CHOICES[@]} -eq 0 ]; then
-        print_error "No selection made. Exiting."
-        exit 1
-    fi
+    echo -e "${BLUE}Using Tailscale IP: ${GREEN}${TAILSCALE_IP}${NC}"
+    echo ""
+    echo -e "${YELLOW}Which services do you want to install?${NC}"
+    echo ""
+    echo "  1) Portainer (Container Management)"
+    echo "  2) RustDesk Server (Remote Desktop)"
+    echo "  3) Nextcloud (File Sharing)"
+    echo "  4) Nginx Proxy Manager (Reverse Proxy)"
+    echo ""
+    echo -e "${YELLOW}Enter choices (space-separated): ${NC}"
+    read -r CHOICES
+    
+    echo ""
+    echo -e "${GREEN}Starting installation...${NC}"
+    echo ""
 }
 
-warn_if_low_memory_selection() {
-    local mem_total_kb mem_total_mb
-    if [[ ${#CHOICES[@]} -le 2 ]]; then
-        return
-    fi
-
-    mem_total_kb=$(grep -i MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}')
-    if [[ -z "$mem_total_kb" ]]; then
-        return
-    fi
-
-    mem_total_mb=$((mem_total_kb / 1024))
-    if (( mem_total_mb <= 1200 )); then
-        print_warning "Host reports only ${mem_total_mb} MB of RAM. Running ${#CHOICES[@]} containers at once may exhaust memory."
-        read -r -p "Continue anyway? [y/N]: " confirm
-        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-            print_status "Skipping service deployment per user request."
-            exit 0
-        fi
-    fi
-}
-
-install_selected_apps() {
-    print_status "Starting installation of selected services..."
-
-    for choice in "${CHOICES[@]}"; do
+install_services() {
+    for choice in $CHOICES; do
         case $choice in
             1)
-                print_status "Installing Portainer..."
-                run_portainer
+                echo -e "${YELLOW}📦 Installing Portainer...${NC}"
+                bash "$SCRIPT_ROOT/deploy_portainer.sh"
+                display_portainer_summary
+                echo ""
                 ;;
             2)
-                print_status "Installing RustDesk Server..."
-                run_rustdesk_container
+                echo -e "${YELLOW}📦 Installing RustDesk Server...${NC}"
+                bash "$SCRIPT_ROOT/deploy_rustdesk.sh"
+                echo ""
                 ;;
             3)
-                print_status "Installing Nextcloud..."
-                run_nextcloud
+                echo -e "${YELLOW}📦 Installing Nextcloud...${NC}"
+                bash "$SCRIPT_ROOT/deploy_nextcloud.sh"
+                display_nextcloud_summary
+                echo ""
                 ;;
             4)
-                print_status "Installing Nginx Proxy Manager..."
-                run_npm
+                echo -e "${YELLOW}📦 Installing Nginx Proxy Manager...${NC}"
+                bash "$SCRIPT_ROOT/deploy_npm.sh"
+                display_npm_summary
+                echo ""
                 ;;
             *)
-                print_warning "Invalid choice: $choice. Skipping."
+                print_warning "Invalid choice: $choice"
                 ;;
         esac
     done
-}
-
-verify_and_display_info() {
-    print_status "Verifying installations..."
-
-    local rustdesk_installed=false
-    local portainer_installed=false
-    local npm_installed=false
-    local nextcloud_installed=false
-    local tailscale_connected=false
-
-    for choice in "${CHOICES[@]}"; do
-        case $choice in
-            1)
-                if docker ps | grep -q "$PORTAINER_CONTAINER"; then
-                    print_status "[OK] Portainer container is running"
-                    portainer_installed=true
-                else
-                    print_error "[FAIL] Portainer container is not running"
-                fi
-                ;;
-            2)
-                if docker ps | grep -q "$CONTAINER_NAME"; then
-                    print_status "[OK] RustDesk container is running"
-                    rustdesk_installed=true
-                else
-                    print_error "[FAIL] RustDesk container is not running"
-                fi
-
-                if curl -s --max-time 10 http://localhost:21114/_admin/ >/dev/null 2>&1; then
-                    print_status "[OK] RustDesk API is responding"
-                else
-                    print_warning "[WARN] RustDesk API may not be ready yet"
-                fi
-                ;;
-            3)
-                if docker ps | grep -q "$NC_CONTAINER"; then
-                    print_status "[OK] Nextcloud container is running"
-                    nextcloud_installed=true
-                else
-                    print_error "[FAIL] Nextcloud container is not running"
-                fi
-                ;;
-            4)
-                if docker ps | grep -q "$NPM_CONTAINER"; then
-                    print_status "[OK] Nginx Proxy Manager container is running"
-                    npm_installed=true
-                else
-                    print_error "[FAIL] Nginx Proxy Manager container is not running"
-                fi
-                ;;
-        esac
-    done
-
-    if tailscale status >/dev/null 2>&1; then
-        print_status "[OK] Tailscale VPN is connected"
-        tailscale_connected=true
-    else
-        print_warning "[WARN] Tailscale may not be connected"
-    fi
-
-    source "$SCRIPT_DIR/scripts/config.sh"
-
-    echo ""
-    echo -e "${GREEN}${BOLD}==================================================${NC}"
-    echo -e "${GREEN}${BOLD}   RustDesk + Tailscale + EFS Installation Complete!${NC}"
-    echo -e "${GREEN}${BOLD}==================================================${NC}"
-    echo ""
     
-    echo -e "${CYAN}${BOLD}🌐 Access URLs (via Tailscale ONLY):${NC}"
-    if [ "$rustdesk_installed" = true ]; then
-        echo -e "${BLUE}   RustDesk Admin Panel: http://${TAILSCALE_IP}:21114/_admin/${NC}"
-        echo -e "${BLUE}   RustDesk Web Client:  http://${TAILSCALE_IP}:21114/${NC}"
-    fi
-    if [ "$portainer_installed" = true ]; then
-        echo -e "${BLUE}   Portainer:           https://${TAILSCALE_IP}:9443/${NC}"
-    fi
-    if [ "$rustdesk_installed" = true ]; then
-        echo -e "${BLUE}   API Documentation:   http://${TAILSCALE_IP}:21114/swagger/index.html${NC}"
-    fi
-    echo ""
-
-    if [ "$rustdesk_installed" = true ]; then
-        echo -e "${CYAN}${BOLD}🔐 Credentials:${NC}"
-        echo -e "${BLUE}   Admin Username: admin${NC}"
-        if [ -n "$ADMIN_PASSWORD" ]; then
-            echo -e "${BLUE}   Admin Password: ${YELLOW}${ADMIN_PASSWORD}${NC}"
-        else
-            echo -e "${BLUE}   Admin Password: ${YELLOW}Not found, check logs: sudo docker logs $CONTAINER_NAME${NC}"
-        fi
-        echo ""
-    fi
-
-    if [ "$rustdesk_installed" = true ]; then
-        echo -e "${CYAN}${BOLD}🔧 RustDesk Client Configuration:${NC}"
-        echo -e "${BLUE}   ID Server:    ${TAILSCALE_IP}:21116${NC}"
-        echo -e "${BLUE}   Relay Server: DISABLED (Direct connection only)${NC}"
-        echo -e "${BLUE}   API Server:   http://${TAILSCALE_IP}:21114${NC}"
-        if [ -n "$PUBLIC_KEY" ] && [ "$PUBLIC_KEY" != "Check container logs" ]; then
-            echo -e "${BLUE}   Public Key:   ${PUBLIC_KEY}${NC}"
-        else
-            echo -e "${BLUE}   Public Key:   ${YELLOW}Check: sudo docker exec $CONTAINER_NAME cat /data/id_ed25519.pub${NC}"
-        fi
-        echo ""
-    fi
-
-    if [ "$tailscale_connected" = true ]; then
-        echo -e "${CYAN}${BOLD}🔐 Tailscale Network:${NC}"
-        echo -e "${BLUE}   Your Tailscale IP: ${TAILSCALE_IP}${NC}"
-        echo -e "${BLUE}   Network Status:    true${NC}"
-        echo ""
-    fi
-
-    echo -e "${CYAN}${BOLD}📁 EFS Storage:${NC}"
-    echo -e "${BLUE}   EFS ID: ${EFS_ID}${NC}"
-    echo -e "${BLUE}   Mount Point: ${DATA_DIR}${NC}"
-    echo -e "${BLUE}   Auto-mount: Enabled in /etc/fstab${NC}"
-    echo ""
-
-    echo -e "${CYAN}${BOLD}💡 Important Notes:${NC}"
-    echo -e "${YELLOW}   ⚠️ RELAY IS DISABLED - Connections work ONLY via Tailscale VPN${NC}"
-    echo -e "${BLUE}   1. Install Tailscale on all client devices${NC}"
-    echo -e "${BLUE}   2. Use Tailscale IP (${TAILSCALE_IP}) for RustDesk ID Server${NC}"
-    echo -e "${BLUE}   3. Connect using direct IP or ID (no relay fallback)${NC}"
-    echo -e "${BLUE}   4. Change admin password: sudo docker exec rustdesk-server /app/apimain reset-admin-pwd YOUR_PASSWORD${NC}"
-    echo -e "${BLUE}   5. Monitor logs: sudo docker logs -f rustdesk-server${NC}"
-    echo ""
-
-    echo -e "${CYAN}${BOLD}📱 Client Setup Instructions:${NC}"
-    echo -e "${BLUE}   1. Install Tailscale on client device: https://tailscale.com/download${NC}"
-    echo -e "${BLUE}   2. Connect to your Tailscale network${NC}"
-    echo -e "${BLUE}   3. Install RustDesk client${NC}"
-    echo -e "${BLUE}   4. Go to Settings → Network${NC}"
-    echo -e "${BLUE}   5. Set ID Server: ${TAILSCALE_IP}:21116${NC}"
-    echo -e "${BLUE}   6. Leave Relay Server EMPTY or set to 127.0.0.1${NC}"
-    echo -e "${BLUE}   7. Apply settings and restart RustDesk${NC}"
-    echo ""
-
-    echo -e "${GREEN}✅ Installation completed successfully!${NC}"
+    display_final_summary
 }
 
-setup_backup_cron() {
-    print_status "Setting up automated backups for RustDesk..."
-    local BACKUP_SCRIPT="/usr/local/bin/rustdesk_backup.sh"
-    tee $BACKUP_SCRIPT > /dev/null <<'EOF'
-#!/bin/bash
-DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="/var/backups/rustdesk"
-mkdir -p "${BACKUP_DIR}"
-tar czf "${BACKUP_DIR}/rustdesk_backup_${DATE}.tar.gz" -C "$DATA_DIR" .
-find "${BACKUP_DIR}" -name "rustdesk_backup_*.tar.gz" -mtime +7 -delete
-EOF
-    chmod +x $BACKUP_SCRIPT
-    (crontab -l 2>/dev/null | grep -v "$BACKUP_SCRIPT"; echo "0 3 * * * $BACKUP_SCRIPT") | crontab -
-    print_status "RustDesk backup cron job configured."
+display_portainer_summary() {
+    echo ""
+    echo -e "${GREEN}${BOLD}==================================================${NC}"
+    echo -e "${GREEN}${BOLD}✅ Portainer Installation Complete!${NC}"
+    echo -e "${GREEN}${BOLD}==================================================${NC}"
+    echo ""
+    echo -e "${BLUE}🌐 Access URL:${NC}     https://${TAILSCALE_IP}:9443/"
+    echo -e "${BLUE}📋 Default User:${NC}   admin"
+    echo -e "${BLUE}🔐 Password:${NC}       Set on first login"
+    echo ""
 }
+
+display_nextcloud_summary() {
+    echo ""
+    echo -e "${GREEN}${BOLD}==================================================${NC}"
+    echo -e "${GREEN}${BOLD}✅ Nextcloud Installation Complete!${NC}"
+    echo -e "${GREEN}${BOLD}==================================================${NC}"
+    echo ""
+    echo -e "${BLUE}🌐 Access URL:${NC}     http://${TAILSCALE_IP}:8080/"
+    echo -e "${BLUE}📋 Default User:${NC}   admin"
+    echo -e "${BLUE}🔐 Password:${NC}       Check container logs"
+    echo ""
+}
+
+display_npm_summary() {
+    echo ""
+    echo -e "${GREEN}${BOLD}==================================================${NC}"
+    echo -e "${GREEN}${BOLD}✅ Nginx Proxy Manager Installation Complete!${NC}"
+    echo -e "${GREEN}${BOLD}==================================================${NC}"
+    echo ""
+    echo -e "${BLUE}🌐 Access URL:${NC}     http://${TAILSCALE_IP}:81/"
+    echo -e "${BLUE}📋 Default User:${NC}   admin@example.com"
+    echo -e "${BLUE}🔐 Default Pass:${NC}   changeme"
+    echo ""
+}
+
+display_final_summary() {
+    echo ""
+    echo -e "${GREEN}${BOLD}==================================================${NC}"
+    echo -e "${GREEN}${BOLD}🎉 All Services Installed Successfully!${NC}"
+    echo -e "${GREEN}${BOLD}==================================================${NC}"
+    echo ""
+    echo -e "${CYAN}${BOLD}📱 Access Your Services:${NC}"
+    echo ""
+    echo -e "${BLUE}Your Tailscale IP: ${GREEN}${TAILSCALE_IP}${NC}"
+    echo ""
+    echo -e "${BLUE}Services:${NC}"
+    echo "  • Portainer:     https://${TAILSCALE_IP}:9443/"
+    echo "  • RustDesk:      http://${TAILSCALE_IP}:21114/"
+    echo "  • Nextcloud:     http://${TAILSCALE_IP}:8080/"
+    echo "  • Nginx PM:      http://${TAILSCALE_IP}:81/"
+    echo ""
+    echo -e "${CYAN}${BOLD}💡 Important:${NC}"
+    echo "  1. Install Tailscale on all client devices"
+    echo "  2. All services are only accessible via Tailscale"
+    echo "  3. Change default passwords immediately"
+    echo "  4. Check logs if you have issues"
+    echo ""
+    echo -e "${GREEN}${BOLD}✅ Setup Complete!${NC}"
+    echo -e "${GREEN}${BOLD}==================================================${NC}"
+    echo ""
+}
+
+# Run the menu
+show_service_menu
+install_services

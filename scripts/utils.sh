@@ -1,33 +1,34 @@
 #!/bin/bash
 
-# Define color codes
+# Color codes
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Function to print status messages
 print_status() {
-    echo -e "${GREEN}-----> $1${NC}"
+    echo -e "${BLUE}[INFO]${NC} $1"
 }
 
-# Function to print warning messages
-print_warning() {
-    echo -e "${YELLOW}-----> WARNING: $1${NC}" >&2
+print_success() {
+    echo -e "${GREEN}[✓]${NC} $1"
 }
 
-# Function to print error messages
 print_error() {
-    echo -e "${RED}-----> ERROR: $1${NC}" >&2
+    echo -e "${RED}[ERROR]${NC} $1" >&2
 }
 
-# Function to check if the script is run as root
-check_root() {
-    if [ "$EUID" -ne 0 ]; then
-        print_error "Run this script with sudo or as root."
-        exit 1
-    fi
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+print_section() {
+    echo ""
+    echo -e "${CYAN}${BOLD}════════════════════════════════════════${NC}"
+    echo -e "${CYAN}${BOLD}$1${NC}"
+    echo -e "${CYAN}${BOLD}════════════════════════════════════════${NC}"
+    echo ""
 }
