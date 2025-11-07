@@ -69,6 +69,8 @@ parse_args() {
 }
 
 main() {
+    > "$SCRIPT_DIR/last-script-logs.txt"
+    exec &> >(tee -a "$SCRIPT_DIR/last-script-logs.txt")
     parse_args "$@"
 
     echo -e "${GREEN}"
