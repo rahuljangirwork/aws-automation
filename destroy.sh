@@ -52,6 +52,53 @@ safe_delete_path() {
     fi
 }
 
+stop_containers() {
+    local app_name="$1"
+    shift
+    local containers=("$@")
+
+    if ! command -v docker >/dev/null 2>&1; then
+        print_error "Docker CLI not available; cannot manage $app_name containers."
+        return 1
+    fi
+
+    local existing_containers
+    local stopped_any=false
+    existing_containers="$(docker ps -a --format '{{.Names}}' 2>/dev/null || true)"
+
+    for container in "${containers[@]}"; do
+        [[ -z "$container" ]] && continue
+        if echo "$existing_containers" | grep -xq "$container"; then
+            stopped_any=true
+            docker stop "$container" &>/dev/null || true
+            docker rm "$container" &>/dev/null || true
+        fi
+    done
+
+    if [ "$stopped_any" = true ]; then
+        print_status "Stopped and removed $app_name containers directly."
+    else
+        print_warning "No active $app_name containers found during direct shutdown."
+    fi
+}
+
+destroy_with_compose_or_containers() {
+    local app_name="$1"
+    local compose_file="$2"
+    shift 2
+    local containers=("$@")
+
+    if [ -n "$compose_file" ]; then
+        if run_compose_down "$compose_file" "$app_name"; then
+            return 0
+        fi
+    fi
+
+    if [ ${#containers[@]} -gt 0 ]; then
+        stop_containers "$app_name" "${containers[@]}"
+    fi
+}
+
 # --- Interactive Menu ---
 show_destroy_menu() {
     echo -e "${YELLOW}Please choose which services to DESTROY and CLEAN UP:${NC}"
@@ -109,21 +156,21 @@ destroy_selected_apps() {
                 ;;
             3)
                 print_status "Destroying Nextcloud..."
-                run_compose_down "$NC_COMPOSE_FILE" "Nextcloud" || true
+                destroy_with_compose_or_containers "Nextcloud" "$NC_COMPOSE_FILE" "$NC_CONTAINER" "$NC_DB_CONTAINER"
                 print_status "Cleaning up Nextcloud data at $NC_DATA_DIR..."
                 safe_delete_path "$NC_DATA_DIR" "Nextcloud data"
                 print_status "Nextcloud destroyed."
                 ;;
             4)
                 print_status "Destroying Nginx Proxy Manager..."
-                run_compose_down "$NPM_COMPOSE_FILE" "Nginx Proxy Manager" || true
+                destroy_with_compose_or_containers "Nginx Proxy Manager" "$NPM_COMPOSE_FILE" "$NPM_CONTAINER"
                 print_status "Cleaning up Nginx Proxy Manager data at $NPM_DATA_DIR..."
                 safe_delete_path "$NPM_DATA_DIR" "NPM data"
                 print_status "Nginx Proxy Manager destroyed."
                 ;;
             5)
                 print_status "Destroying Pi-hole + Unbound..."
-                run_compose_down "$PIHOLE_COMPOSE_FILE" "Pi-hole + Unbound" || true
+                destroy_with_compose_or_containers "Pi-hole + Unbound" "$PIHOLE_COMPOSE_FILE" "$PIHOLE_CONTAINER"
                 print_status "Cleaning up Pi-hole data at $PIHOLE_DATA_DIR..."
                 safe_delete_path "$PIHOLE_DATA_DIR" "Pi-hole data"
                 print_status "Pi-hole destroyed."
