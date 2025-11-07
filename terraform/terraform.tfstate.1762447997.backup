@@ -1,15 +1,15 @@
 {
   "version": 4,
   "terraform_version": "1.13.4",
-  "serial": 192,
+  "serial": 169,
   "lineage": "f10f88a0-6266-62ec-cac7-d37958253686",
   "outputs": {
     "instance_public_ip": {
-      "value": "51.21.141.242",
+      "value": "13.62.184.167",
       "type": "string"
     },
     "ssh_command": {
-      "value": "ssh -i YOUR_SSH_KEY_FILE.pem ubuntu@51.21.141.242",
+      "value": "ssh -i YOUR_SSH_KEY_FILE.pem ubuntu@13.62.184.167",
       "type": "string"
     }
   },
@@ -237,7 +237,7 @@
           },
           "sensitive_attributes": [],
           "identity_schema_version": 0,
-          "private": "eyJzY2hlbWFfdmVyc2lvbiI6IjAifQ=="
+          "private": "bnVsbA=="
         }
       ]
     },
@@ -256,16 +256,16 @@
             "dns_name": "fs-0b827bf76a16f14bc.efs.eu-north-1.amazonaws.com",
             "file_system_arn": "arn:aws:elasticfilesystem:eu-north-1:687568280197:file-system/fs-0b827bf76a16f14bc",
             "file_system_id": "fs-0b827bf76a16f14bc",
-            "id": "fsmt-0c391b2af585be48a",
-            "ip_address": "172.31.8.144",
+            "id": "fsmt-0c390570465a42dd4",
+            "ip_address": "172.31.12.237",
             "ip_address_type": "IPV4_ONLY",
             "ipv6_address": "",
             "mount_target_dns_name": "eu-north-1c.fs-0b827bf76a16f14bc.efs.eu-north-1.amazonaws.com",
-            "network_interface_id": "eni-03a939af3194b8fa8",
+            "network_interface_id": "eni-01c2a725fc30ea050",
             "owner_id": "687568280197",
             "region": "eu-north-1",
             "security_groups": [
-              "sg-02d27799d3174ee18"
+              "sg-0cbce71d4ae2622be"
             ],
             "subnet_id": "subnet-00cdd36237209f4c6",
             "timeouts": null
@@ -290,16 +290,16 @@
             "dns_name": "fs-0b827bf76a16f14bc.efs.eu-north-1.amazonaws.com",
             "file_system_arn": "arn:aws:elasticfilesystem:eu-north-1:687568280197:file-system/fs-0b827bf76a16f14bc",
             "file_system_id": "fs-0b827bf76a16f14bc",
-            "id": "fsmt-004881ab2b1d33c2c",
-            "ip_address": "172.31.20.95",
+            "id": "fsmt-02fe828ed4ca04a7d",
+            "ip_address": "172.31.31.163",
             "ip_address_type": "IPV4_ONLY",
             "ipv6_address": "",
             "mount_target_dns_name": "eu-north-1a.fs-0b827bf76a16f14bc.efs.eu-north-1.amazonaws.com",
-            "network_interface_id": "eni-07c452e2c1a7820e0",
+            "network_interface_id": "eni-0c2fb811948fda129",
             "owner_id": "687568280197",
             "region": "eu-north-1",
             "security_groups": [
-              "sg-02d27799d3174ee18"
+              "sg-0cbce71d4ae2622be"
             ],
             "subnet_id": "subnet-058e0844d01aa69b6",
             "timeouts": null
@@ -324,16 +324,16 @@
             "dns_name": "fs-0b827bf76a16f14bc.efs.eu-north-1.amazonaws.com",
             "file_system_arn": "arn:aws:elasticfilesystem:eu-north-1:687568280197:file-system/fs-0b827bf76a16f14bc",
             "file_system_id": "fs-0b827bf76a16f14bc",
-            "id": "fsmt-0e00b86f90606d125",
-            "ip_address": "172.31.40.33",
+            "id": "fsmt-0f5c39287132c4243",
+            "ip_address": "172.31.41.131",
             "ip_address_type": "IPV4_ONLY",
             "ipv6_address": "",
             "mount_target_dns_name": "eu-north-1b.fs-0b827bf76a16f14bc.efs.eu-north-1.amazonaws.com",
-            "network_interface_id": "eni-03b97967182149a91",
+            "network_interface_id": "eni-07bc321e698195c94",
             "owner_id": "687568280197",
             "region": "eu-north-1",
             "security_groups": [
-              "sg-02d27799d3174ee18"
+              "sg-0cbce71d4ae2622be"
             ],
             "subnet_id": "subnet-0f36727824d34d273",
             "timeouts": null
@@ -361,15 +361,15 @@
           "schema_version": 0,
           "attributes": {
             "address": null,
-            "allocation_id": "eipalloc-0e3b95983971bc2a6",
-            "arn": "arn:aws:ec2:eu-north-1:687568280197:elastic-ip/eipalloc-0e3b95983971bc2a6",
+            "allocation_id": "eipalloc-0e7081755a24e56b9",
+            "arn": "arn:aws:ec2:eu-north-1:687568280197:elastic-ip/eipalloc-0e7081755a24e56b9",
             "associate_with_private_ip": null,
             "association_id": "",
             "carrier_ip": "",
             "customer_owned_ip": "",
             "customer_owned_ipv4_pool": "",
             "domain": "vpc",
-            "id": "eipalloc-0e3b95983971bc2a6",
+            "id": "eipalloc-0e7081755a24e56b9",
             "instance": "",
             "ipam_pool_id": null,
             "network_border_group": "eu-north-1",
@@ -377,8 +377,8 @@
             "private_dns": null,
             "private_ip": "",
             "ptr_record": "",
-            "public_dns": "ec2-51-21-141-242.eu-north-1.compute.amazonaws.com",
-            "public_ip": "51.21.141.242",
+            "public_dns": "ec2-13-62-184-167.eu-north-1.compute.amazonaws.com",
+            "public_ip": "13.62.184.167",
             "public_ipv4_pool": "amazon",
             "region": "eu-north-1",
             "tags": {
@@ -404,13 +404,13 @@
         {
           "schema_version": 0,
           "attributes": {
-            "allocation_id": "eipalloc-0e3b95983971bc2a6",
+            "allocation_id": "eipalloc-0e7081755a24e56b9",
             "allow_reassociation": null,
-            "id": "eipassoc-0492e13ed207498aa",
-            "instance_id": "i-02a845fbf69447577",
-            "network_interface_id": "eni-06e37dd547daa4524",
-            "private_ip_address": "172.31.12.101",
-            "public_ip": "51.21.141.242",
+            "id": "eipassoc-0b8963906e21261af",
+            "instance_id": "i-00ce347eafd4860a3",
+            "network_interface_id": "eni-0af5bcb271fbca574",
+            "private_ip_address": "172.31.3.105",
+            "public_ip": "13.62.184.167",
             "region": "eu-north-1"
           },
           "sensitive_attributes": [],
@@ -437,7 +437,7 @@
           "schema_version": 2,
           "attributes": {
             "ami": "ami-01fd6fa49060e89a6",
-            "arn": "arn:aws:ec2:eu-north-1:687568280197:instance/i-02a845fbf69447577",
+            "arn": "arn:aws:ec2:eu-north-1:687568280197:instance/i-00ce347eafd4860a3",
             "associate_public_ip_address": true,
             "availability_zone": "eu-north-1c",
             "capacity_reservation_specification": [
@@ -475,7 +475,7 @@
             "host_id": "",
             "host_resource_group_arn": null,
             "iam_instance_profile": "",
-            "id": "i-02a845fbf69447577",
+            "id": "i-00ce347eafd4860a3",
             "instance_initiated_shutdown_behavior": "stop",
             "instance_lifecycle": "",
             "instance_market_options": [],
@@ -509,11 +509,11 @@
             "primary_network_interface": [
               {
                 "delete_on_termination": true,
-                "network_interface_id": "eni-06e37dd547daa4524"
+                "network_interface_id": "eni-0af5bcb271fbca574"
               }
             ],
-            "primary_network_interface_id": "eni-06e37dd547daa4524",
-            "private_dns": "ip-172-31-12-101.eu-north-1.compute.internal",
+            "primary_network_interface_id": "eni-0af5bcb271fbca574",
+            "private_dns": "ip-172-31-3-105.eu-north-1.compute.internal",
             "private_dns_name_options": [
               {
                 "enable_resource_name_dns_a_record": false,
@@ -521,9 +521,9 @@
                 "hostname_type": "ip-name"
               }
             ],
-            "private_ip": "172.31.12.101",
-            "public_dns": "ec2-13-48-23-12.eu-north-1.compute.amazonaws.com",
-            "public_ip": "13.48.23.12",
+            "private_ip": "172.31.3.105",
+            "public_dns": "ec2-13-53-243-124.eu-north-1.compute.amazonaws.com",
+            "public_ip": "13.53.243.124",
             "region": "eu-north-1",
             "root_block_device": [
               {
@@ -535,7 +535,7 @@
                 "tags": {},
                 "tags_all": {},
                 "throughput": 0,
-                "volume_id": "vol-0455615fb510d8a03",
+                "volume_id": "vol-022d1804cb3a3ad92",
                 "volume_size": 8,
                 "volume_type": "gp2"
               }
@@ -560,14 +560,14 @@
             "user_data_replace_on_change": false,
             "volume_tags": null,
             "vpc_security_group_ids": [
-              "sg-06243d57322b9f8d3"
+              "sg-0aec005221b2d4e37"
             ]
           },
           "sensitive_attributes": [],
           "identity_schema_version": 0,
           "identity": {
             "account_id": "687568280197",
-            "id": "i-02a845fbf69447577",
+            "id": "i-00ce347eafd4860a3",
             "region": "eu-north-1"
           },
           "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6MTIwMDAwMDAwMDAwMCwicmVhZCI6OTAwMDAwMDAwMDAwLCJ1cGRhdGUiOjYwMDAwMDAwMDAwMH0sInNjaGVtYV92ZXJzaW9uIjoiMiJ9",
@@ -589,7 +589,7 @@
         {
           "schema_version": 1,
           "attributes": {
-            "arn": "arn:aws:ec2:eu-north-1:687568280197:security-group/sg-06243d57322b9f8d3",
+            "arn": "arn:aws:ec2:eu-north-1:687568280197:security-group/sg-0aec005221b2d4e37",
             "description": "Allow SSH and Tailscale traffic",
             "egress": [
               {
@@ -606,7 +606,7 @@
                 "to_port": 0
               }
             ],
-            "id": "sg-06243d57322b9f8d3",
+            "id": "sg-0aec005221b2d4e37",
             "ingress": [
               {
                 "cidr_blocks": [
@@ -653,7 +653,7 @@
           "identity_schema_version": 0,
           "identity": {
             "account_id": "687568280197",
-            "id": "sg-06243d57322b9f8d3",
+            "id": "sg-0aec005221b2d4e37",
             "region": "eu-north-1"
           },
           "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6OTAwMDAwMDAwMDAwfSwic2NoZW1hX3ZlcnNpb24iOiIxIn0=",
@@ -672,7 +672,7 @@
         {
           "schema_version": 1,
           "attributes": {
-            "arn": "arn:aws:ec2:eu-north-1:687568280197:security-group/sg-02d27799d3174ee18",
+            "arn": "arn:aws:ec2:eu-north-1:687568280197:security-group/sg-0cbce71d4ae2622be",
             "description": "Allow NFS traffic from EC2",
             "egress": [
               {
@@ -689,7 +689,7 @@
                 "to_port": 0
               }
             ],
-            "id": "sg-02d27799d3174ee18",
+            "id": "sg-0cbce71d4ae2622be",
             "ingress": [
               {
                 "cidr_blocks": [],
@@ -699,7 +699,7 @@
                 "prefix_list_ids": [],
                 "protocol": "tcp",
                 "security_groups": [
-                  "sg-06243d57322b9f8d3"
+                  "sg-0aec005221b2d4e37"
                 ],
                 "self": false,
                 "to_port": 2049
@@ -723,7 +723,7 @@
           "identity_schema_version": 0,
           "identity": {
             "account_id": "687568280197",
-            "id": "sg-02d27799d3174ee18",
+            "id": "sg-0cbce71d4ae2622be",
             "region": "eu-north-1"
           },
           "private": "eyJlMmJmYjczMC1lY2FhLTExZTYtOGY4OC0zNDM2M2JjN2M0YzAiOnsiY3JlYXRlIjo2MDAwMDAwMDAwMDAsImRlbGV0ZSI6OTAwMDAwMDAwMDAwfSwic2NoZW1hX3ZlcnNpb24iOiIxIn0=",
