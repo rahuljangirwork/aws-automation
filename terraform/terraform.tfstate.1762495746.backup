@@ -1,7 +1,7 @@
 {
   "version": 4,
   "terraform_version": "1.13.4",
-  "serial": 240,
+  "serial": 239,
   "lineage": "f10f88a0-6266-62ec-cac7-d37958253686",
   "outputs": {
     "instance_public_ip": {
@@ -188,6 +188,57 @@
           },
           "sensitive_attributes": [],
           "identity_schema_version": 0
+        }
+      ]
+    },
+    {
+      "mode": "managed",
+      "type": "aws_efs_file_system",
+      "name": "efs",
+      "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "arn": "arn:aws:elasticfilesystem:eu-north-1:687568280197:file-system/fs-0613a60feac52e288",
+            "availability_zone_id": "",
+            "availability_zone_name": "",
+            "creation_token": "efs-for-ec2",
+            "dns_name": "fs-0613a60feac52e288.efs.eu-north-1.amazonaws.com",
+            "encrypted": false,
+            "id": "fs-0613a60feac52e288",
+            "kms_key_id": "",
+            "lifecycle_policy": [],
+            "name": "EFS-for-EC2",
+            "number_of_mount_targets": 3,
+            "owner_id": "687568280197",
+            "performance_mode": "generalPurpose",
+            "protection": [
+              {
+                "replication_overwrite": "ENABLED"
+              }
+            ],
+            "provisioned_throughput_in_mibps": 0,
+            "region": "eu-north-1",
+            "size_in_bytes": [
+              {
+                "value": 6144,
+                "value_in_ia": 0,
+                "value_in_standard": 6144
+              }
+            ],
+            "tags": {
+              "Name": "EFS-for-EC2"
+            },
+            "tags_all": {
+              "Name": "EFS-for-EC2"
+            },
+            "throughput_mode": "bursting"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0,
+          "private": "bnVsbA==",
+          "create_before_destroy": true
         }
       ]
     },

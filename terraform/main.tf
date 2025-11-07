@@ -43,7 +43,6 @@ resource "aws_security_group" "ec2_sg" {
   }
 
   # Tailscale uses UDP on port 41641 for NAT traversal.
-  # Once connected, traffic is encapsulated, so specific app ports aren't needed here.
   ingress {
     from_port   = 41641
     to_port     = 41641
@@ -89,29 +88,31 @@ resource "aws_security_group" "efs_sg" {
   }
 }
 
+# EFS will be PROTECTED from accidental deletion
 resource "aws_efs_file_system" "efs" {
   creation_token = "efs-for-ec2"
+  
   tags = {
     Name = "EFS-for-EC2"
   }
+  
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = true  # EFS will NOT be destroyed
   }
 }
 
+# Mount targets will be destroyed/recreated, but EFS data remains safe
 resource "aws_efs_mount_target" "efs_mount_target" {
   for_each = toset(data.aws_subnets.default.ids)
 
   file_system_id  = aws_efs_file_system.efs.id
   subnet_id       = each.value
   security_groups = [aws_security_group.efs_sg.id]
+  
+  lifecycle {
+    create_before_destroy = true
+  }
 }
-
-
-
-
-
-
 
 resource "aws_eip" "static_ip" {
   domain = "vpc"
@@ -127,7 +128,6 @@ resource "aws_instance" "app_server" {
 
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
   
-  # This user_data script runs on the first boot
   user_data = <<-EOF
               #!/bin/bash
               set -e
@@ -154,7 +154,6 @@ resource "aws_instance" "app_server" {
               chmod +x "$SETUP_SCRIPT"
 
               # Run the main setup script as the ubuntu user
-              # This will run until it prompts for Tailscale authentication
               sudo -u ubuntu "$SETUP_SCRIPT"
               EOF
 

@@ -1,0 +1,36 @@
+# First, remove the mount targets (they can be recreated)
+terraform destroy -target=aws_efs_mount_target.efs_mount_target -auto-approve
+
+# Apply the updated configuration
+terraform apply -auto-approve
+
+
+
+
+
+
+
+
+
+# This will destroy everything EXCEPT the EFS
+terraform destroy -target=aws_eip_association.eip_assoc -auto-approve
+terraform destroy -target=aws_instance.app_server -auto-approve
+terraform destroy -target=aws_efs_mount_target.efs_mount_target -auto-approve
+terraform destroy -target=aws_eip.static_ip -auto-approve
+terraform destroy -target=aws_security_group.efs_sg -auto-approve
+terraform destroy -target=aws_security_group.ec2_sg -auto-approve
+
+
+
+
+Step-by-Step Fix (Quick & Easy)
+Step 1: Remove EFS from Terraform State
+
+terraform state rm aws_efs_file_system.efs
+
+
+This removes the EFS from Terraform's tracking but doesn't delete it from AWS.​
+
+Step 2: Now Destroy Everything Else
+
+terraform destroy -auto-approve
