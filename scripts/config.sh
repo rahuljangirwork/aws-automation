@@ -28,3 +28,8 @@ NC_DATA_DIR='/data/nextcloud'
 NC_COMPOSE_FILE='/data/nextcloud/docker-compose.yml'
 NC_DB_ROOT_PASSWORD='$(openssl rand -base64 16)'
 NC_DB_PASSWORD='$(openssl rand -base64 16)'
+
+# Pi-hole + Unbound Configuration
+PIHOLE_CONTAINER='pihole'
+PIHOLE_DATA_DIR='/data/pihole'
+PIHOLE_COMPOSE_FILE='/data/pihole/docker-compose.yml'

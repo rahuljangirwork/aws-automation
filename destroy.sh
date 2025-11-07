@@ -1,10 +1,56 @@
 #!/bin/bash
 
+set -euo pipefail
+
 # Source config and utils for variables and functions
 source ./scripts/config.sh
 source ./scripts/utils.sh
 
 declare -a CHOICES
+declare -a COMPOSE_CMD=()
+
+detect_compose_cli() {
+    if docker compose version >/dev/null 2>&1; then
+        COMPOSE_CMD=("docker" "compose")
+    elif command -v docker-compose >/dev/null 2>&1; then
+        COMPOSE_CMD=("docker-compose")
+    else
+        COMPOSE_CMD=()
+    fi
+}
+
+run_compose_down() {
+    local compose_file="$1"
+    local app_name="$2"
+
+    if [ ! -f "$compose_file" ]; then
+        print_warning "$app_name compose file not found at $compose_file. Skipping stack shutdown."
+        return 1
+    fi
+
+    if [ ${#COMPOSE_CMD[@]} -eq 0 ]; then
+        print_error "Neither 'docker compose' nor 'docker-compose' is available. Install Docker Compose to manage $app_name."
+        return 1
+    fi
+
+    (cd "$(dirname "$compose_file")" && "${COMPOSE_CMD[@]}" -f "$compose_file" down -v)
+}
+
+safe_delete_path() {
+    local target="$1"
+    local label="$2"
+
+    if [ -z "$target" ] || [ ! -d "$target" ]; then
+        return
+    fi
+
+    if mountpoint -q "$target"; then
+        print_status "$label is a mount point; deleting its contents only."
+        find "$target" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
+    else
+        rm -rf "$target"
+    fi
+}
 
 # --- Interactive Menu ---
 show_destroy_menu() {
@@ -57,43 +103,29 @@ destroy_selected_apps() {
                 print_status "Destroying RustDesk Server..."
                 docker stop $CONTAINER_NAME &>/dev/null || true
                 docker rm $CONTAINER_NAME &>/dev/null || true
-                if [ -d "$DATA_DIR" ]; then
-                    print_status "Cleaning up RustDesk data at $DATA_DIR..."
-                    rm -rf "$DATA_DIR"
-                fi
+                print_status "Cleaning up RustDesk data at $DATA_DIR..."
+                safe_delete_path "$DATA_DIR" "RustDesk data mount"
                 print_status "RustDesk destroyed."
                 ;;
             3)
                 print_status "Destroying Nextcloud..."
-                if [ -f "$NC_COMPOSE_FILE" ]; then
-                    (cd "$(dirname "$NC_COMPOSE_FILE")" && docker-compose -f "$NC_COMPOSE_FILE" down -v)
-                    print_status "Cleaning up Nextcloud data at $NC_DATA_DIR..."
-                    rm -rf "$NC_DATA_DIR"
-                else
-                    print_warning "Nextcloud compose file not found. Skipping."
-                fi
+                run_compose_down "$NC_COMPOSE_FILE" "Nextcloud" || true
+                print_status "Cleaning up Nextcloud data at $NC_DATA_DIR..."
+                safe_delete_path "$NC_DATA_DIR" "Nextcloud data"
                 print_status "Nextcloud destroyed."
                 ;;
             4)
                 print_status "Destroying Nginx Proxy Manager..."
-                if [ -f "$NPM_COMPOSE_FILE" ]; then
-                    (cd "$(dirname "$NPM_COMPOSE_FILE")" && docker-compose -f "$NPM_COMPOSE_FILE" down -v)
-                    print_status "Cleaning up Nginx Proxy Manager data at $NPM_DATA_DIR..."
-                    rm -rf "$NPM_DATA_DIR"
-                else
-                    print_warning "NPM compose file not found. Skipping."
-                fi
+                run_compose_down "$NPM_COMPOSE_FILE" "Nginx Proxy Manager" || true
+                print_status "Cleaning up Nginx Proxy Manager data at $NPM_DATA_DIR..."
+                safe_delete_path "$NPM_DATA_DIR" "NPM data"
                 print_status "Nginx Proxy Manager destroyed."
                 ;;
             5)
                 print_status "Destroying Pi-hole + Unbound..."
-                if [ -f "$PIHOLE_COMPOSE_FILE" ]; then
-                    (cd "$(dirname "$PIHOLE_COMPOSE_FILE")" && docker-compose -f "$PIHOLE_COMPOSE_FILE" down -v)
-                    print_status "Cleaning up Pi-hole data at $PIHOLE_DATA_DIR..."
-                    rm -rf "$PIHOLE_DATA_DIR"
-                else
-                    print_warning "Pi-hole compose file not found. Skipping."
-                fi
+                run_compose_down "$PIHOLE_COMPOSE_FILE" "Pi-hole + Unbound" || true
+                print_status "Cleaning up Pi-hole data at $PIHOLE_DATA_DIR..."
+                safe_delete_path "$PIHOLE_DATA_DIR" "Pi-hole data"
                 print_status "Pi-hole destroyed."
                 ;;
             *)
@@ -105,7 +137,7 @@ destroy_selected_apps() {
     print_status "Cleanup of crontab..."
     (crontab -l 2>/dev/null | grep -v "rustdesk_backup.sh") | crontab -
 
-    echo -e "${GREEN}✅ Destruction complete.${NC}"
+    echo -e "${GREEN}Destruction complete.${NC}"
 }
 
 # --- Main Execution ---
@@ -115,6 +147,8 @@ main() {
     echo "    Interactive Service Destroyer and Cleanup Tool"
     echo "========================================================="
     echo -e "${NC}"
+
+    detect_compose_cli
     
     show_destroy_menu
     destroy_selected_apps
