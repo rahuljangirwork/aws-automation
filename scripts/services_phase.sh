@@ -116,6 +116,7 @@ verify_and_display_info() {
     local portainer_installed=false
     local npm_installed=false
     local nextcloud_installed=false
+    local tailscale_connected=false
 
     for choice in "${CHOICES[@]}"; do
         case $choice in
@@ -162,41 +163,46 @@ verify_and_display_info() {
 
     if tailscale status >/dev/null 2>&1; then
         print_status "[OK] Tailscale VPN is connected"
+        tailscale_connected=true
     else
         print_warning "[WARN] Tailscale may not be connected"
     fi
 
     echo ""
     echo -e "${GREEN}${BOLD}==================================================${NC}"
-    echo -e "${GREEN}${BOLD}      Service Installation Complete!${NC}"
+    echo -e "${GREEN}${BOLD}   RustDesk + Tailscale + EFS Installation Complete!${NC}"
     echo -e "${GREEN}${BOLD}==================================================${NC}"
     echo ""
     
     echo -e "${CYAN}${BOLD}🌐 Access URLs (via Tailscale ONLY):${NC}"
-    if [ "$portainer_installed" = true ]; then
-        echo -e "${BLUE}   Portainer:           https://${TAILSCALE_IP}:9443/${NC}"
-    fi
     if [ "$rustdesk_installed" = true ]; then
         echo -e "${BLUE}   RustDesk Admin Panel: http://${TAILSCALE_IP}:21114/_admin/${NC}"
         echo -e "${BLUE}   RustDesk Web Client:  http://${TAILSCALE_IP}:21114/${NC}"
     fi
-    if [ "$npm_installed" = true ]; then
-        echo -e "${BLUE}   Nginx Proxy Manager: http://${TAILSCALE_IP}:81/${NC}"
+    if [ "$portainer_installed" = true ]; then
+        echo -e "${BLUE}   Portainer:           https://${TAILSCALE_IP}:9443/${NC}"
     fi
-    if [ "$nextcloud_installed" = true ]; then
-        echo -e "${BLUE}   Nextcloud:           http://${TAILSCALE_IP}:8080/${NC}"
+    if [ "$rustdesk_installed" = true ]; then
+        echo -e "${BLUE}   API Documentation:   http://${TAILSCALE_IP}:21114/swagger/index.html${NC}"
     fi
     echo ""
 
     if [ "$rustdesk_installed" = true ]; then
-        echo -e "${CYAN}${BOLD}🔐 RustDesk Credentials & Config:${NC}"
+        echo -e "${CYAN}${BOLD}🔐 Credentials:${NC}"
         echo -e "${BLUE}   Admin Username: admin${NC}"
         if [ -n "$ADMIN_PASSWORD" ]; then
             echo -e "${BLUE}   Admin Password: ${YELLOW}${ADMIN_PASSWORD}${NC}"
         else
             echo -e "${BLUE}   Admin Password: ${YELLOW}Not found, check logs: sudo docker logs $CONTAINER_NAME${NC}"
         fi
+        echo ""
+    fi
+
+    if [ "$rustdesk_installed" = true ]; then
+        echo -e "${CYAN}${BOLD}🔧 RustDesk Client Configuration:${NC}"
         echo -e "${BLUE}   ID Server:    ${TAILSCALE_IP}:21116${NC}"
+        echo -e "${BLUE}   Relay Server: DISABLED (Direct connection only)${NC}"
+        echo -e "${BLUE}   API Server:   http://${TAILSCALE_IP}:21114${NC}"
         if [ -n "$PUBLIC_KEY" ] && [ "$PUBLIC_KEY" != "Check container logs" ]; then
             echo -e "${BLUE}   Public Key:   ${PUBLIC_KEY}${NC}"
         else
@@ -205,34 +211,12 @@ verify_and_display_info() {
         echo ""
     fi
 
-    if [ "$npm_installed" = true ]; then
-        echo -e "${CYAN}${BOLD}🔐 Nginx Proxy Manager Default Credentials:${NC}"
-        echo -e "${BLUE}   Email:    admin@example.com${NC}"
-        echo -e "${BLUE}   Password: changeme${NC}"
+    if [ "$tailscale_connected" = true ]; then
+        echo -e "${CYAN}${BOLD}🔐 Tailscale Network:${NC}"
+        echo -e "${BLUE}   Your Tailscale IP: ${TAILSCALE_IP}${NC}"
+        echo -e "${BLUE}   Network Status:    true${NC}"
         echo ""
     fi
-
-    if [ "$rustdesk_installed" = true ]; then
-        echo -e "${CYAN}${BOLD}📱 RustDesk Client Setup Instructions:${NC}"
-        echo -e "   1. Install Tailscale on client device: ${BLUE}https://tailscale.com/download${NC}"
-        echo -e "   2. Connect to your Tailscale network"
-        echo -e "   3. Install RustDesk client"
-        echo -e "   4. Go to Settings → Network"
-        echo -e "   5. Set ID Server: ${GREEN}${TAILSCALE_IP}:21116${NC}"
-        echo -e "   6. Leave Relay Server EMPTY or set to 127.0.0.1"
-        echo -e "   7. Apply settings and restart RustDesk"
-        echo ""
-    fi
-
-    echo -e "${YELLOW}${BOLD}💡 Important Notes:${NC}"
-    echo -e "   - All services are accessible ONLY through the Tailscale VPN."
-    echo -e "   - A 1 GB RAM instance can struggle if every container runs at once; enable services selectively."
-    if [ "$rustdesk_installed" = true ]; then
-        echo -e "   - For RustDesk, ensure Relay is disabled in the client."
-    fi
-    echo ""
-    echo -e "${GREEN}Setup finished!${NC}"
-    echo ""
 }
 
 setup_backup_cron() {
