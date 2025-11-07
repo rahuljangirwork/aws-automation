@@ -7,12 +7,12 @@ install_tailscale() {
     print_status "Installing Tailscale VPN..."
     
     # Add Tailscale repository
-    curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/$(lsb_release -cs).noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
-    curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/$(lsb_release -cs).tailscale-keyring.list | sudo tee /etc/apt/sources.list.d/tailscale.list
+    curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/$(lsb_release -cs).noarmor.gpg | tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
+    curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/$(lsb_release -cs).tailscale-keyring.list | tee /etc/apt/sources.list.d/tailscale.list
     
     # Install Tailscale
-    sudo apt-get update
-    sudo apt-get install -y tailscale
+    apt-get update
+    apt-get install -y tailscale
     
     print_status "Tailscale installed successfully"
 }
@@ -23,10 +23,10 @@ setup_tailscale() {
     # Always run 'tailscale up' to ensure correct settings
     if [ -n "$TS_AUTH_KEY" ]; then
         print_status "Authenticating with auth key..."
-        sudo tailscale up --authkey="${TS_AUTH_KEY}" --accept-dns=false --hostname="aws-rustdesk-server"
+        tailscale up --authkey="${TS_AUTH_KEY}" --accept-dns=false --hostname="aws-rustdesk-server"
     else
         print_status "Running tailscale up... If needed, please authenticate in your browser."
-        sudo tailscale up --accept-dns=false --hostname="aws-rustdesk-server"
+        tailscale up --accept-dns=false --hostname="aws-rustdesk-server"
     fi
 
     # Check status after attempting to bring it up
@@ -44,9 +44,9 @@ setup_tailscale() {
     fi
     
     # Enable IP forwarding
-    echo 'net.ipv4.ip_forward = 1' | sudo tee /etc/sysctl.conf > /dev/null
-    echo 'net.ipv6.conf.all.forwarding = 1' | sudo tee -a /etc/sysctl.conf > /dev/null
-    sudo sysctl -p
+    echo 'net.ipv4.ip_forward = 1' | tee /etc/sysctl.conf > /dev/null
+    echo 'net.ipv6.conf.all.forwarding = 1' | tee -a /etc/sysctl.conf > /dev/null
+    sysctl -p
 }
 
 get_tailscale_ip() {

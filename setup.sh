@@ -79,7 +79,7 @@ verify_and_display_info() {
     for choice in "${CHOICES[@]}"; do
         case $choice in
             1)
-                if sudo docker ps | grep -q $PORTAINER_CONTAINER; then
+                if docker ps | grep -q $PORTAINER_CONTAINER; then
                     print_status "✓ Portainer container is running"
                     portainer_installed=true
                 else
@@ -87,7 +87,7 @@ verify_and_display_info() {
                 fi
                 ;;
             2)
-                if sudo docker ps | grep -q $CONTAINER_NAME; then
+                if docker ps | grep -q $CONTAINER_NAME; then
                     print_status "✓ RustDesk container is running"
                     rustdesk_installed=true
                 else
@@ -101,7 +101,7 @@ verify_and_display_info() {
                 fi
                 ;;
             3)
-                if sudo docker ps | grep -q $NC_CONTAINER; then
+                if docker ps | grep -q $NC_CONTAINER; then
                     print_status "✓ Nextcloud container is running"
                     nextcloud_installed=true
                 else
@@ -109,7 +109,7 @@ verify_and_display_info() {
                 fi
                 ;;
             4)
-                if sudo docker ps | grep -q $NPM_CONTAINER; then
+                if docker ps | grep -q $NPM_CONTAINER; then
                     print_status "✓ Nginx Proxy Manager container is running"
                     npm_installed=true
                 else
@@ -150,8 +150,8 @@ verify_and_display_info() {
 
     if [ "$rustdesk_installed" = true ]; then
         # Retrieve RustDesk info
-        ADMIN_PASSWORD=$(sudo docker logs $CONTAINER_NAME 2>&1 | grep -i "admin password" | tail -1 | awk -F': ' '{print $2}' | tr -d '\n\r')
-        PUBLIC_KEY=$(sudo docker exec $CONTAINER_NAME cat /data/id_ed25519.pub 2>/dev/null | tr -d '\n\r')
+        ADMIN_PASSWORD=$(docker logs $CONTAINER_NAME 2>&1 | grep -i "admin password" | tail -1 | awk -F': ' '{print $2}' | tr -d '\n\r')
+        PUBLIC_KEY=$(docker exec $CONTAINER_NAME cat /data/id_ed25519.pub 2>/dev/null | tr -d '\n\r')
 
         echo -e "${YELLOW}🔐 RustDesk Credentials & Config:${NC}"
         echo "   Admin Username: admin"
@@ -186,7 +186,7 @@ main() {
     echo -e "${NC}"
     
     # --- Core Setup ---
-    check_root
+    # check_root
     install_dependencies
     install_tailscale
     setup_tailscale
@@ -200,11 +200,11 @@ main() {
 
     print_status "Applying workaround for sudo/DNS resolution issue..."
     HOSTNAME=$(hostname)
-    echo "127.0.0.1 $HOSTNAME" | sudo tee -a /etc/hosts > /dev/null
+    echo "127.0.0.1 $HOSTNAME" | tee -a /etc/hosts > /dev/null
 
     print_status "Forcing DNS to AWS default to ensure EFS resolution..."
-    sudo rm /etc/resolv.conf
-    echo "nameserver 172.31.0.2" | sudo tee /etc/resolv.conf > /dev/null
+    rm /etc/resolv.conf
+    echo "nameserver 172.31.0.2" | tee /etc/resolv.conf > /dev/null
     
     
     mount_efs
@@ -231,7 +231,7 @@ setup_backup_cron() {
     print_status "Setting up automated backups for RustDesk..."
     # (Backup script content remains the same as original)
     BACKUP_SCRIPT="/usr/local/bin/rustdesk_backup.sh"
-    sudo tee $BACKUP_SCRIPT > /dev/null <<EOF
+    tee $BACKUP_SCRIPT > /dev/null <<EOF
 #!/bin/bash
 DATE=\$(date +%Y%m%d_%H%M%S)
 BACKUP_DIR="/var/backups/rustdesk"
@@ -239,7 +239,7 @@ mkdir -p \$BACKUP_DIR
 tar czf \$BACKUP_DIR/rustdesk_backup_\$DATE.tar.gz -C $DATA_DIR .
 find \$BACKUP_DIR -name "rustdesk_backup_*.tar.gz" -mtime +7 -delete
 EOF
-    sudo chmod +x $BACKUP_SCRIPT
+    chmod +x $BACKUP_SCRIPT
     (crontab -l 2>/dev/null | grep -v "$BACKUP_SCRIPT"; echo "0 3 * * * $BACKUP_SCRIPT") | crontab -
     print_status "RustDesk backup cron job configured."
 }

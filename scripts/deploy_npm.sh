@@ -4,11 +4,11 @@ run_npm() {
     print_status "Setting up Nginx Proxy Manager..."
 
     # Create directories on EFS
-    sudo mkdir -p "$NPM_DATA_DIR/data"
-    sudo mkdir -p "$NPM_DATA_DIR/letsencrypt"
+    mkdir -p "$NPM_DATA_DIR/data"
+    mkdir -p "$NPM_DATA_DIR/letsencrypt"
 
     # Create Docker Compose file
-    sudo tee "$NPM_COMPOSE_FILE" > /dev/null <<EOF
+    tee "$NPM_COMPOSE_FILE" > /dev/null <<EOF
 version: '3.8'
 services:
   app:
@@ -27,7 +27,7 @@ services:
 EOF
 
     print_status "Starting Nginx Proxy Manager container..."
-    (cd "$(dirname "$NPM_COMPOSE_FILE")" && sudo docker compose -f "$NPM_COMPOSE_FILE" up -d)
+    (cd "$(dirname "$NPM_COMPOSE_FILE")" && docker compose -f "$NPM_COMPOSE_FILE" up -d)
 
     print_status "Nginx Proxy Manager setup complete."
     echo "You can access the admin panel at http://$TAILSCALE_IP:81"

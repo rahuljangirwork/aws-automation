@@ -48,27 +48,27 @@ destroy_selected_apps() {
         case $choice in
             1)
                 print_status "Destroying Portainer..."
-                sudo docker stop $PORTAINER_CONTAINER &>/dev/null || true
-                sudo docker rm $PORTAINER_CONTAINER &>/dev/null || true
-                sudo docker volume rm $PORTAINER_DATA_VOLUME &>/dev/null || true
+                docker stop $PORTAINER_CONTAINER &>/dev/null || true
+                docker rm $PORTAINER_CONTAINER &>/dev/null || true
+                docker volume rm $PORTAINER_DATA_VOLUME &>/dev/null || true
                 print_status "Portainer destroyed."
                 ;;
             2)
                 print_status "Destroying RustDesk Server..."
-                sudo docker stop $CONTAINER_NAME &>/dev/null || true
-                sudo docker rm $CONTAINER_NAME &>/dev/null || true
+                docker stop $CONTAINER_NAME &>/dev/null || true
+                docker rm $CONTAINER_NAME &>/dev/null || true
                 if [ -d "$DATA_DIR" ]; then
                     print_status "Cleaning up RustDesk data at $DATA_DIR..."
-                    sudo rm -rf "$DATA_DIR"
+                    rm -rf "$DATA_DIR"
                 fi
                 print_status "RustDesk destroyed."
                 ;;
             3)
                 print_status "Destroying Nextcloud..."
                 if [ -f "$NC_COMPOSE_FILE" ]; then
-                    (cd "$(dirname "$NC_COMPOSE_FILE")" && sudo docker-compose -f "$NC_COMPOSE_FILE" down -v)
+                    (cd "$(dirname "$NC_COMPOSE_FILE")" && docker-compose -f "$NC_COMPOSE_FILE" down -v)
                     print_status "Cleaning up Nextcloud data at $NC_DATA_DIR..."
-                    sudo rm -rf "$NC_DATA_DIR"
+                    rm -rf "$NC_DATA_DIR"
                 else
                     print_warning "Nextcloud compose file not found. Skipping."
                 fi
@@ -77,9 +77,9 @@ destroy_selected_apps() {
             4)
                 print_status "Destroying Nginx Proxy Manager..."
                 if [ -f "$NPM_COMPOSE_FILE" ]; then
-                    (cd "$(dirname "$NPM_COMPOSE_FILE")" && sudo docker-compose -f "$NPM_COMPOSE_FILE" down -v)
+                    (cd "$(dirname "$NPM_COMPOSE_FILE")" && docker-compose -f "$NPM_COMPOSE_FILE" down -v)
                     print_status "Cleaning up Nginx Proxy Manager data at $NPM_DATA_DIR..."
-                    sudo rm -rf "$NPM_DATA_DIR"
+                    rm -rf "$NPM_DATA_DIR"
                 else
                     print_warning "NPM compose file not found. Skipping."
                 fi
@@ -88,9 +88,9 @@ destroy_selected_apps() {
             5)
                 print_status "Destroying Pi-hole + Unbound..."
                 if [ -f "$PIHOLE_COMPOSE_FILE" ]; then
-                    (cd "$(dirname "$PIHOLE_COMPOSE_FILE")" && sudo docker-compose -f "$PIHOLE_COMPOSE_FILE" down -v)
+                    (cd "$(dirname "$PIHOLE_COMPOSE_FILE")" && docker-compose -f "$PIHOLE_COMPOSE_FILE" down -v)
                     print_status "Cleaning up Pi-hole data at $PIHOLE_DATA_DIR..."
-                    sudo rm -rf "$PIHOLE_DATA_DIR"
+                    rm -rf "$PIHOLE_DATA_DIR"
                 else
                     print_warning "Pi-hole compose file not found. Skipping."
                 fi

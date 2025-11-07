@@ -4,11 +4,11 @@ run_nextcloud() {
     print_status "Setting up Nextcloud..."
 
     # Create directories on EFS
-    sudo mkdir -p "$NC_DATA_DIR/html"
-    sudo mkdir -p "$NC_DATA_DIR/db"
+    mkdir -p "$NC_DATA_DIR/html"
+    mkdir -p "$NC_DATA_DIR/db"
 
     # Create Docker Compose file
-    sudo tee "$NC_COMPOSE_FILE" > /dev/null <<EOF
+    tee "$NC_COMPOSE_FILE" > /dev/null <<EOF
 version: '3.8'
 
 services:
@@ -55,7 +55,7 @@ networks:
 EOF
 
     print_status "Starting Nextcloud and MariaDB containers..."
-    (cd "$(dirname "$NC_COMPOSE_FILE")" && sudo docker compose -f "$NC_COMPOSE_FILE" up -d)
+    (cd "$(dirname "$NC_COMPOSE_FILE")" && docker compose -f "$NC_COMPOSE_FILE" up -d)
 
     print_status "Nextcloud setup complete."
     echo "Nextcloud will be available at http://$TAILSCALE_IP:8080 after a few minutes of initialization."
