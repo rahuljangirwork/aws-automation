@@ -15,6 +15,8 @@ PORTAINER_DATA_VOLUME='portainer_data'
 
 # Tailscale Configuration
 TAILSCALE_IP=''
+TS_AUTH_KEY=''
+
 
 # Nginx Proxy Manager Configuration
 NPM_CONTAINER='npm'

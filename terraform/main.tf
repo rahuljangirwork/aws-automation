@@ -29,6 +29,11 @@ data "aws_subnets" "default" {
   }
 }
 
+# Reference existing EFS - NOT managed by Terraform
+data "aws_efs_file_system" "existing_efs" {
+  file_system_id = "fs-0613a60feac52e288"
+}
+
 resource "aws_security_group" "ec2_sg" {
   name        = "ec2-instance-sg"
   description = "Allow SSH and Tailscale traffic"
@@ -42,7 +47,6 @@ resource "aws_security_group" "ec2_sg" {
     description = "Allow SSH from anywhere"
   }
 
-  # Tailscale uses UDP on port 41641 for NAT traversal.
   ingress {
     from_port   = 41641
     to_port     = 41641
@@ -88,24 +92,11 @@ resource "aws_security_group" "efs_sg" {
   }
 }
 
-# EFS will be PROTECTED from accidental deletion
-resource "aws_efs_file_system" "efs" {
-  creation_token = "efs-for-ec2"
-  
-  tags = {
-    Name = "EFS-for-EC2"
-  }
-  
-  lifecycle {
-    prevent_destroy = true  # EFS will NOT be destroyed
-  }
-}
-
-# Mount targets will be destroyed/recreated, but EFS data remains safe
+# Mount targets use existing EFS
 resource "aws_efs_mount_target" "efs_mount_target" {
   for_each = toset(data.aws_subnets.default.ids)
 
-  file_system_id  = aws_efs_file_system.efs.id
+  file_system_id  = data.aws_efs_file_system.existing_efs.id
   subnet_id       = each.value
   security_groups = [aws_security_group.efs_sg.id]
   
@@ -147,8 +138,8 @@ resource "aws_instance" "app_server" {
               CONFIG_FILE="/home/ubuntu/aws-automation/scripts/config.sh"
               SETUP_SCRIPT="/home/ubuntu/aws-automation/setup.sh"
 
-              # Update the EFS ID in the config.sh file with the correct one from Terraform
-              sed -i "s/EFS_ID='.*'/EFS_ID='${aws_efs_file_system.efs.id}'/" "$CONFIG_FILE"
+              # Update the EFS ID in the config.sh file
+              sed -i "s/EFS_ID='.*'/EFS_ID='${data.aws_efs_file_system.existing_efs.id}'/" "$CONFIG_FILE"
 
               # Make the main setup script executable
               chmod +x "$SETUP_SCRIPT"
@@ -160,6 +151,8 @@ resource "aws_instance" "app_server" {
   tags = {
     Name = "RustDesk-App-Server"
   }
+
+  depends_on = [aws_efs_mount_target.efs_mount_target]
 }
 
 resource "aws_eip_association" "eip_assoc" {
